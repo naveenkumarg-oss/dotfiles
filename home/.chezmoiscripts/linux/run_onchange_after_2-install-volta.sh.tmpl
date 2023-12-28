@@ -1,13 +1,43 @@
 #!/bin/bash
 
 # {{ template "scripts-library" }}
+# {{ template "volta-library" }}
 
 # The following line is for ShellCheck to correctly identify the above include
 true || source ../.chezmoitemplates/scripts-library
+true || source ../.chezmoitemplates/volta-library
 
-log_task "Installing volta"
+function is_volta_package_installed() {
+  local package="$1"
 
-curl https://get.volta.sh | bash -s -- --skip-setup
+  volta list --current --quiet --format plain "${package}" | grep --quiet .
+}
 
-volta install node
-volta install npm
+readonly unwanted_packages=(
+  @vscode/dev-container-cli
+)
+
+for package in "${unwanted_packages[@]}"; do
+  if is_volta_package_installed "${package}"; then
+    log_task "Removing unwanted packages with Volta: ${missing_packages[*]}"
+    volta uninstall "${package}"
+  fi
+done
+
+readonly wanted_packages=(
+  node
+  npm
+)
+
+missing_packages=()
+
+for package in "${wanted_packages[@]}"; do
+  if ! is_volta_package_installed "${package}"; then
+    missing_packages+=("${package}")
+  fi
+done
+
+if [[ ${#missing_packages[@]} -gt 0 ]]; then
+  log_task "Installing missing packages with Volta: ${missing_packages[*]}"
+  volta install "${missing_packages[@]}"
+fi
