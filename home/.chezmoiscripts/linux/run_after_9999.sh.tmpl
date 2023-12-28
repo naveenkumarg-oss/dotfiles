@@ -7,9 +7,10 @@ true || source ../.chezmoitemplates/scripts-library
 
 log_task "Running updates to ensure latest and greatest software is available"
 
-up
-upsdk
-upbrew
+
+c sudo apt update && sudo apt upgrade -y
+c sdk selfupdate force
+c brew update && brew outdated && brew upgrade && brew cleanup
 
 log_task "Done running updates to ensure latest and greatest software is available"
 log_task "END"

@@ -28,4 +28,6 @@ java_version="21"
 identifier="$(sdk list java | grep --only-matching --max-count 1 --extended-regexp "\b${java_version}.[0-9]+.[0-9]+(.[0-9]+)?-graalce\b")"
 if ! sdk current java | grep -q "${identifier}"; then
   log_task "Installing Java ${java_version} with SDKMAN!"
+  c sdk install java "${identifier}"
+  c sdk default java "${identifier}"
 fi
