@@ -1,0 +1,27 @@
+{
+    "workbench.iconTheme": "vscode-icons",
+    "editor.minimap.enabled": false,
+    "editor.accessibilitySupport": "off",
+    "editor.fontFamily": "Monoid Nerd Font Mono",
+    "editor.fontLigatures": true,
+    "editor.suggest.showMethods": true,
+    "workbench.tree.indent": 15,
+    "workbench.tree.renderIndentGuides": "always",
+    "workbench.colorCustomizations": {
+        "tree.indentGuidesStroke": "#05ef3c"
+    },
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "window.titleBarStyle": "native",
+    "vsicons.dontShowNewVersionMessage": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "better-comments.highlightPlainText": true,
+    "workbench.colorTheme": "One Dark Pro Darker",
+    "oneDarkPro.vivid": true,
+    "telemetry.telemetryLevel": "all",
+    "redhat.telemetry.enabled": true,
+    "codeium.enableConfig": {
+        "*": true,
+        "xml": true
+    }
+}

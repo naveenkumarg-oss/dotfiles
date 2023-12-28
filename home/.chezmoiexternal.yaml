@@ -1,0 +1,107 @@
+{{- /* "chezmoi" is present as work around for https://github.com/twpayne/chezmoi/discussions/1724 */ -}}
+{{- $cache := dict "chezmoi" .chezmoi -}}
+
+{{- template "read-versions-and-revisions-cache" $cache -}}
+
+{{ if .is_ubuntu -}}
+
+".oh-my-zsh":
+  type: archive
+  {{ $omzRevision := includeTemplate "get-github-head-revision" (list "ohmyzsh/ohmyzsh" $cache) }}
+  url: "https://github.com/ohmyzsh/ohmyzsh/archive/{{ $omzRevision }}.tar.gz"
+  stripComponents: 1
+  # waiting for https://github.com/twpayne/chezmoi/issues/1614#issuecomment-966524408
+  # exact: true
+  refreshPeriod: "168h"
+
+".oh-my-zsh/custom/plugins/zsh-syntax-highlighting":
+  type: archive
+  {{ $zshSyntaxHighlightingRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-syntax-highlighting" $cache) }}
+  url: "https://github.com/zsh-users/zsh-syntax-highlighting/archive/{{ $zshSyntaxHighlightingRevision }}.tar.gz"
+  stripComponents: 1
+  exact: true
+  refreshPeriod: "168h"
+
+".oh-my-zsh/custom/plugins/zsh-autosuggestions":
+  type: archive
+  {{ $zshAutoSuggestionsRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-autosuggestions" $cache) }}
+  url: "https://github.com/zsh-users/zsh-autosuggestions/archive/{{ $zshAutoSuggestionsRevision }}.tar.gz"
+  stripComponents: 1
+  exact: true
+  refreshPeriod: "168h"
+
+".oh-my-zsh/custom/plugins/zsh-completions":
+  type: archive
+  {{ $zshCompletionsRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-completions" $cache) }}
+  url: "https://github.com/zsh-users/zsh-completions/archive/{{ $zshCompletionsRevision }}.tar.gz"
+  stripComponents: 1
+  exact: true
+  refreshPeriod: "168h"
+
+# ".local/bin/direnv":
+#   type: file
+#   {{ $direnvVersion := includeTemplate "get-github-latest-version" (list "direnv/direnv" $cache) }}
+#   url: "https://github.com/direnv/direnv/releases/download/v{{ $direnvVersion }}/direnv.linux-{{ .chezmoi.arch }}"
+#   executable: true
+#   refreshPeriod: "168h"
+
+".local/bin/kubecolor":
+  type: archive-file
+  {{ $kubecolorVersion := includeTemplate "get-github-latest-version" (list "hidetatz/kubecolor" $cache) }}
+  url: "https://github.com/hidetatz/kubecolor/releases/download/v{{ $kubecolorVersion }}/kubecolor_{{ $kubecolorVersion }}_Linux_{{ .uname_arch }}.tar.gz"
+  path: kubecolor
+  refreshPeriod: "168h"
+
+".local/bin/kubectx":
+  type: archive-file
+  {{ $kubectxVersion := includeTemplate "get-github-latest-version" (list "ahmetb/kubectx" $cache) }}
+  url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubectx_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
+  path: kubectx
+  refreshPeriod: "168h"
+
+".oh-my-zsh/custom/plugins/my-completions/_kubectx.zsh":
+  type: file
+  url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubectx.zsh"
+  refreshPeriod: "168h"
+
+".local/bin/kubens":
+  type: archive-file
+  url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubens_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
+  path: kubens
+  refreshPeriod: "168h"
+
+".oh-my-zsh/custom/plugins/my-completions/_kubens.zsh":
+  type: file
+  url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubens.zsh"
+  refreshPeriod: "168h"
+
+# Required by kubectx and kubens
+".local/bin/fzf":
+  type: archive-file
+  {{ $fzfVersion := includeTemplate "get-github-latest-version" (list "junegunn/fzf" $cache) }}
+  url: "https://github.com/junegunn/fzf/releases/download/{{ $fzfVersion }}/fzf-{{ $fzfVersion }}-linux_{{ .chezmoi.arch }}.tar.gz"
+  path: fzf
+  refreshPeriod: "168h"
+
+# ".local/bin/stern":
+#   type: archive-file
+#   {{ $sternVersion := includeTemplate "get-github-latest-version" (list "stern/stern" $cache) }}
+#   url: "https://github.com/stern/stern/releases/download/v{{ $sternVersion }}/stern_{{ $sternVersion }}_linux_{{ .chezmoi.arch }}.tar.gz"
+#   path: stern
+#   refreshPeriod: "168h"
+
+".config/nvim":
+  type: git-repo
+  url: "https://github.com/AstroNvim/AstroNvim"
+  clone.args: "--depth 1"
+  refreshPeriod: "168h"
+
+{{- end }}
+
+
+{{ if .is_windows -}}
+"./AppData/Roaming/Notepad++/themes/Dracula.xml":
+  type: file
+  url: "https://raw.githubusercontent.com/dracula/notepad-plus-plus/master/Dracula.xml"
+  refreshPeriod: "168h"
+{{- end }}

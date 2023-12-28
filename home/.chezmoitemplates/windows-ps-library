@@ -1,0 +1,12 @@
+function Install-With-Winget {
+    param ([string]$PackageName)
+
+    winget list -e --id $PackageName --source winget 2>&1 > $null
+    if ($?) {
+        Write-Host "$PackageName already installed..." -ForegroundColor Green
+        
+    } else {
+        Write-Host "Installing $PackageName" -ForegroundColor Cyan
+        winget install --id $PackageName --scope user --accept-source-agreements --disable-interactivity
+    }
+}

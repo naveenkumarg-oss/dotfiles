@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above included library
+true || source ../.chezmoitemplates/scripts-library
+
+log_task "Running updates to ensure latest and greatest software is available"
+
+up
+upsdk
+upbrew
+
+log_task "Done running updates to ensure latest and greatest software is available"
+log_task "END"

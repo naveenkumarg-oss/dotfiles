@@ -1,0 +1,27 @@
+# https://www.chezmoi.io/user-guide/manage-machine-to-machine-differences/#ignore-files-or-a-directory-on-different-machines
+#  chezmoi installs everything by default. So to turn logic around, ignore unless it is <logic>
+
+{{ if not .is_windows -}}
+.chezmoiscripts/windows/**
+Documents/**
+AppData/**
+{{- end }}
+
+# VS Code remote server makes sense only on WSL
+{{ if not .is_wsl -}}
+.chezmoiscripts/linux/run_before_50-install-vscode-ext.sh
+.vscode-server/data/Machine
+{{- end }}
+
+{{ if not .is_ubuntu -}}
+.chezmoiscripts/linux/**
+.config/lazygit
+.config/nvim
+.sdkman/**
+.bash_aliases
+.bashrc
+.profile
+.ripgreprc
+.zshrc
+.hushlogin
+{{- end }}

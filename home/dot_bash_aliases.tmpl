@@ -1,0 +1,29 @@
+# shellcheck shell=bash
+
+# This file is automatically sourced by bash, and it's also sourced in .zshrc
+# in order to keep the same aliases on both shells. So keep in mind that any
+# code here must be compatible with bash and zsh.
+
+# Merge all ~/.kube/*.kubeconfig.yaml into ~/.kube/config
+merge-kubeconfigs() {
+  # shellcheck disable=SC2312
+  KUBECONFIG="$(printf '%s:' "${HOME}"/.kube/*.kubeconfig.yaml | sed 's/:$//')" kubectl config view --flatten | tee "${HOME}/.kube/config"
+}
+
+# {{ if .is_wsl }}
+gsudo() {
+  local shell
+
+  shell=$(ps -p $$ -ocomm=) &&
+    gsudo.exe wsl -d "${WSL_DISTRO_NAME?}" -e "${shell}" "-c" "$*"
+}
+
+cdw() {
+  local user_profile
+  local win_home
+
+  user_profile=$(wslvar USERPROFILE) &&
+    win_home=$(wslpath "${user_profile}") &&
+    cd "${win_home}"
+}
+# {{ end }}

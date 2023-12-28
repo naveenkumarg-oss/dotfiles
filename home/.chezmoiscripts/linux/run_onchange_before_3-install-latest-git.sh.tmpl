@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above included library
+true || source ../.chezmoitemplates/scripts-library
+
+# https://git-scm.com/download/linux
+log_task "Add PPA from Git maintainers; re-install git"
+
+git --version
+
+c sudo add-apt-repository ppa:git-core/ppa --yes
+sudo apt update; 
+c sudo apt install git --yes
+git --version

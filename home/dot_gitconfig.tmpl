@@ -1,0 +1,104 @@
+#
+# See https://git-scm.com/docs/git-config
+#
+
+[user]
+    name = "{{ .name }}"
+    email = "{{ .email }}"
+
+[color]
+    ui = always
+
+[init]
+    defaultBranch = main
+
+[core]
+    # https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
+    {{- if .is_ubuntu -}}
+    autocrlf = input
+    {{ else }}
+    autocrlf = true
+    {{- end}}
+
+    # Set comment character to something that allows mentioning issue numbers.
+    commentChar = ";"
+
+    # Store global exclusions into a custom file.
+    excludesfile = ~/.gitignore_global
+
+    # Speed up commands involving untracked files such as `git status`.
+    # See https://git-scm.com/docs/git-update-index#_untracked_cache
+    untrackedCache = true
+
+    {{- if .is_ubuntu -}}
+    pager = delta
+    {{- end -}}
+
+[pull]
+    ff = only
+
+[push]
+    autoSetupRemote = true
+
+[rebase]
+    # Create a temporary stash entry before the operation begins.
+    autostash = true
+
+[fetch]
+    # Remove any remote-tracking references that no longer exist on the remote.
+    prune = true
+
+[help]
+    # Correct and execute mistyped commands.
+    autocorrect = 1
+
+[merge]
+    # Include summaries of merged commits in newly created merge commit messages.
+    log = true
+
+[mergetool]
+    # Avoid saving an `.orig` backup file after a merge.
+    keepBackup = false
+
+{{ if .is_windows -}}
+[difftool "vscode"]
+    cmd = code --wait --diff $LOCAL $REMOTE
+
+[mergetool "vscode"]
+    cmd = code --wait $MERGED
+{{- end }}
+
+[apply]
+    # Detect whitespace errors when applying a patch.
+    whitespace = fix
+
+[commit]
+    # Specify template file for new commit messages.
+    template = ~/.gitmessage.txt
+
+[include]
+    # Include aliases.
+    path = ~/.gitconfig_aliases
+
+    # Include extra configuration (if any).
+    path = ~/.gitconfig_local
+
+{{ if .is_ubuntu -}}
+[delta]
+    features = side-by-side line-numbers decorations
+    syntax-theme = Dracula
+    plus-style = "syntax #003800"
+    minus-style = "syntax #3f0001"
+
+[delta "decorations"]
+    commit-decoration-style = bold yellow box ul
+    file-style = bold yellow ul
+    file-decoration-style = none
+    hunk-header-decoration-style = cyan box ul
+
+[delta "line-numbers"]
+    line-numbers-left-style = cyan
+    line-numbers-right-style = cyan
+    line-numbers-minus-style = 124
+    line-numbers-plus-style = 28
+{{- end }}

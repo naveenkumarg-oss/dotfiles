@@ -1,0 +1,15 @@
+{{ template "windows-ps-library" }}
+
+GET-COMMAND -Name winget.exe 2>&1 > $null
+if ($?) {
+    Write-Host "Winget already installed..." -ForegroundColor Green
+} else {
+    Write-Host "Installing Winget." -ForegroundColor Cyan
+    Get-Appxpackage Microsoft.DesktopAppInstaller | ForEach-Object {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
+}
+
+Install-With-Winget -PackageName "Microsoft.WindowsTerminal"
+Install-With-Winget -PackageName "Git.Git"
+Install-With-Winget -PackageName "Microsoft.PowerShell"
+Install-With-Winget -PackageName "Microsoft.VisualStudioCode"
+Install-With-Winget -PackageName "Starship.Starship" 

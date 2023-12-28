@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above include
+true || source ../.chezmoitemplates/scripts-library
+
+log_task "Installing extentions for VSCode remote server"
+
+# AI support. 
+code --install-extension VisualStudioExptTeam.intellicode-api-usage-examples
+code --install-extension VisualStudioExptTeam.vscodeintellicode
+# Free for individual use. https://codeium.com/
+code --install-extension Codeium.codeium
+
+code --install-extension foxundermoon.shell-format
+
+# Utility
+code --install-extension oderwat.indent-rainbow
+code --install-extension dbaeumer.vscode-eslint
+code --install-extension esbenp.prettier-vscode
+
+code --install-extension redhat.vscode-xml
+code --install-extension redhat.vscode-yaml
+
+#code --install-extension vscjava.vscode-java-pack

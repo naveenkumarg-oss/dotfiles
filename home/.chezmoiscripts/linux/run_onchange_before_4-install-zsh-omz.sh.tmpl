@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above included library
+true || source ../.chezmoitemplates/scripts-library
+
+log_task "Install ZSH shell and oh-my-zsh"
+
+c sudo apt install zsh -y
+
+# Expected result: zsh 5.8 or more recent.
+zsh --version
+
+zsh_path="/bin/zsh"
+
+if ! getent passwd '{{ .chezmoi.username }}' | cut -d : -f 7- | grep -q "^${zsh_path}$"; then
+  log_task "Configuring ZSH as default shell"
+
+  c sudo usermod --shell "${zsh_path}" '{{ .chezmoi.username }}'
+
+  # Expected result: Same as output from zsh --version which is 'zsh 5.8' or more recent
+	$SHELL --version
+fi
