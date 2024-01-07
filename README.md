@@ -304,3 +304,12 @@ System-specific aliases are marked with <b title="macOS"></b>, <b title="Wind
 | ✅   | ✅         | ✅  | `weather` | 🌤️ Displays [current weather](https://wttr.in/?format=%l:+(%C)+%c++%t+[%h,+%w]). |
 
 <p align="right"><a href="#top" title="Back to top">🔝</a></p>
+
+
+## Ubuntu
+
+### Oh-My-Zsh
+
+#### Plugins
+
+- 

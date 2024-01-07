@@ -27,3 +27,80 @@ cdw() {
     cd "${win_home}"
 }
 # {{ end }}
+
+## Start Aliases ------------------------------------------		
+
+# update OS
+alias up='sudo apt update && sudo apt upgrade -y'
+alias upsdk='sdk selfupdate force'
+alias upbrew='brew update && brew upgrade && brew cleanup'
+
+alias uuid="uuidgen | tr '[:upper:]' '[:lower:]'"
+
+# Launch NeoVim
+alias nv=$(which nvim)
+
+alias c=clear
+
+# Launch bat(cat)
+alias cat=bat
+
+# some more ls aliases
+#alias ll='ls -alF'
+#alias la='ls -A'
+#alias l='ls -CF'
+
+# exa listing
+alias l='exa -agl --icons --git --time-style long-iso'
+alias lt='exa -1 --icons --tree --git-ignore'
+alias ls='exa'
+
+# https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git
+alias gst='git status'
+# git pull recursively
+alias gif='find . -type d -name ".git" -print -exec git -C $PWD/{}/../ pull origin master \;'
+# alias gif='find . -maxdepth 2 -type d -name ".git" -print -exec git -C $PWD/{}/../ fetch origin \;'
+# alias gpms='find . -maxdepth 2 -type d -name ".git" -print -exec git -C $PWD/{}/../ pull origin master \;'
+
+# Recursively searches directories and sub-directories for GIT repo.
+# For each repo found, prints local repo disk size and size reported by Git
+gsize() {
+	for i in **/**; do
+		if [[ -d $i/.git ]]; then
+			(
+				cd "$i" || return
+				echo "$i,$(du -s .git | awk '{ print $1 }'),$(git count-objects -v | grep 'size-pack' | awk '{ print $2 }'),$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
+			)
+		fi
+	done
+}
+
+# git
+alias g='git'
+
+# gradle
+alias gr='gradle'
+alias grw='./gradlew'
+
+# kubernetes
+alias k='kubectl'
+alias kct="kubectx"
+alias kns="kubens"
+
+# Docker Aliases
+alias d='docker'
+alias doi='docker image'
+alias doc='docker container'
+alias dc='docker compose'
+alias doe="docker exec -it"
+
+# Simple Alias for Lazy Git
+alias lg='lazygit'
+
+# open ~/.zshrc in using NeoVim 
+alias ezsh='nv ~/.zshrc'
+
+# source ~/.zshrc
+alias szsh='source ~/.zshrc'
+
+## End Aliases ------------------------------------------		
