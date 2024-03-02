@@ -26,6 +26,7 @@ code --install-extension ms-azuretools.vscode-docker
 # Utility
 code --install-extension aaron-bond.better-comments
 code --install-extension oderwat.indent-rainbow
+code --install-extension biomejs.biome
 code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
 code --install-extension redhat.vscode-xml
