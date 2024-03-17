@@ -31,3 +31,4 @@ code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
 code --install-extension redhat.vscode-xml
 code --install-extension redhat.vscode-yaml
+code --install-extension Oracle.sql-developer

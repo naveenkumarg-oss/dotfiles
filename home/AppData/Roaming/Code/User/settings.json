@@ -22,6 +22,17 @@
     "redhat.telemetry.enabled": true,
     "codeium.enableConfig": {
         "*": true,
-        "xml": true
+        "xml": true,
+        "properties": true,
+        "markdown": true
+    },
+    "sqldeveloper.telemetry.enabled": false,
+    "[oraclesql]": {
+        "editor.suggest.showSnippets": true,
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
     }
 }
