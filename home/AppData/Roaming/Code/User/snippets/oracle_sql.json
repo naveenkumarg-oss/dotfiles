@@ -21,5 +21,30 @@
 			"fetch first 25 rows only;"
 		],
 		"description": "SELECT * FROM"
+	},
+	"Create new schema": {
+		"prefix": "CNS",
+		"body": [
+			"-- SELECT * from DBA_DATA_FILES;",
+			"",
+			"CREATE TABLESPACE ${01:user}_tbs",
+			"   DATAFILE '$1.dbf'",
+			"   SIZE 10M REUSE AUTOEXTEND ON NEXT 5M MAXSIZE UNLIMITED;",
+			"",
+			"-- Create New User",
+			"CREATE USER $1 IDENTIFIED BY ${2:password};",
+			"",
+			"-- Grant Permissions",
+			"GRANT CREATE SESSION TO $1;",
+			"GRANT CREATE TABLE, CREATE VIEW, CREATE MATERIALIZED VIEW, CREATE SYNONYM, CREATE PROCEDURE, CREATE SEQUENCE, CREATE TRIGGER, CREATE TYPE TO $1;",
+			"",
+			"-- Grant Permissions to Table Space",
+			"ALTER USER $1 QUOTA UNLIMITED ON $1_tbs;",
+			"GRANT UNLIMITED TABLESPACE TO $1;",
+			"",
+			"-- DROP USER $1 CASCADE;",
+			"-- DROP TABLESPACE $1_tbs INCLUDING CONTENTS AND DATAFILES;",			
+		],
+		"description": "Creates a new Schema, User and permissions"
 	}
 }
