@@ -27,11 +27,9 @@ ZSH_THEME=""
 # Add wisely, as too many plugins slow down shell startup
 plugins=(
   extract
-  z
   zsh-syntax-highlighting
   zsh-autosuggestions
-  my-completions
-  )
+)
 
 # https://github.com/zsh-users/zsh-completions/issues/603
 fpath+="${ZSH_CUSTOM:-"${ZSH}/custom"}/plugins/zsh-completions/src"
@@ -52,7 +50,5 @@ eval "$(starship init zsh)"
 # McFly - fly through your shell history
 eval "$(mcfly init zsh)"
 
-# NVM
-# export NVM_DIR="$HOME/.nvm"
-# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-# [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# zoxide is a smarter cd command, inspired by z and autojump.
+eval "$(zoxide init zsh)"

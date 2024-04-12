@@ -5,15 +5,6 @@
 
 {{ if .is_ubuntu -}}
 
-".oh-my-zsh":
-  type: archive
-  {{ $omzRevision := includeTemplate "get-github-head-revision" (list "ohmyzsh/ohmyzsh" $cache) }}
-  url: "https://github.com/ohmyzsh/ohmyzsh/archive/{{ $omzRevision }}.tar.gz"
-  stripComponents: 1
-  # waiting for https://github.com/twpayne/chezmoi/issues/1614#issuecomment-966524408
-  # exact: true
-  refreshPeriod: "168h"
-
 ".oh-my-zsh/custom/plugins/zsh-syntax-highlighting":
   type: archive
   {{ $zshSyntaxHighlightingRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-syntax-highlighting" $cache) }}

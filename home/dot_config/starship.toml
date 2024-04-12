@@ -46,6 +46,8 @@ format = '[[($all_status$ahead_behind )](fg:#769ff0 bg:#394260)]($style)'
 [container]
 disabled = true
 
+# Get symbol from https://www.nerdfonts.com/cheat-sheet
+
 [nodejs]
 symbol = ""
 style = "bg:#212736"
@@ -72,7 +74,7 @@ style = "bg:#212736"
 format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
 
 [kotlin]
-symbol = ""
+symbol = " "
 style = "bg:#212736"
 format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
 
