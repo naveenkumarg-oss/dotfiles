@@ -20,3 +20,5 @@ if ! getent passwd '{{ .chezmoi.username }}' | cut -d : -f 7- | grep -q "^${zsh_
   # Expected result: Same as output from zsh --version which is 'zsh 5.8' or more recent
 	$SHELL --version
 fi
+
+exec zsh
