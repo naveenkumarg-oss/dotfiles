@@ -50,5 +50,8 @@ eval "$(starship init zsh)"
 # McFly - fly through your shell history
 eval "$(mcfly init zsh)"
 
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --zsh)"
+
 # zoxide is a smarter cd command, inspired by z and autojump.
 eval "$(zoxide init zsh)"
