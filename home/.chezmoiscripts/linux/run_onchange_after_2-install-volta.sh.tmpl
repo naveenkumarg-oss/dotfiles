@@ -29,6 +29,10 @@ readonly wanted_packages=(
   npm
 )
 
+# First let's install volta 
+# The Hassle-Free JavaScript Tool Manager
+curl https://get.volta.sh | bash
+
 missing_packages=()
 
 for package in "${wanted_packages[@]}"; do
