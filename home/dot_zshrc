@@ -4,12 +4,6 @@ if [[ -r "${HOME}/.profile" ]]; then
   source "${HOME}/.profile"
 fi
 
-# Load bash aliases
-if [[ -r "${HOME}/.bash_aliases" ]]; then
-  # ksh is closer than sh to bash
-  emulate ksh -c "source '${HOME}/.bash_aliases'"
-fi
-
 # Enable homebrew zsh completions
 if (( ${+commands[brew]} )); then
   fpath+="$(brew --prefix)/share/zsh/site-functions"
@@ -35,6 +29,15 @@ plugins=(
 fpath+="${ZSH_CUSTOM:-"${ZSH}/custom"}/plugins/zsh-completions/src"
 
 source "${ZSH}/oh-my-zsh.sh"
+
+# This will help overwrite defaults set in ~/.oh-my-zsh/lib/directories.zsh
+# https://stackoverflow.com/a/72046197
+# Load bash aliases
+if [[ -r "${HOME}/.bash_aliases" ]]; then
+  # ksh is closer than sh to bash
+  emulate ksh -c "source '${HOME}/.bash_aliases'"
+fi
+
 
 # Fix kubectl completion with kubecolor
 if command -v kubectl >/dev/null; then
