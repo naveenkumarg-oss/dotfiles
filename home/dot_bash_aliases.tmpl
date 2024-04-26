@@ -45,15 +45,17 @@ alias c=clear
 # Launch bat(cat)
 alias cat=bat
 
+# Use lsd over native ls https://github.com/lsd-rs/lsd#optional
+alias ls='lsd'
+alias l='ls -l'
+alias la='ls -a'
+alias lla='ls -la'
+alias lt='ls --tree'
+
 # some more ls aliases
 #alias ll='ls -alF'
 #alias la='ls -A'
 #alias l='ls -CF'
-
-# exa listing
-alias l='exa -agl --icons --git --time-style long-iso'
-alias lt='exa -1 --icons --tree --git-ignore'
-alias ls='exa'
 
 # https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git
 alias gst='git status'
