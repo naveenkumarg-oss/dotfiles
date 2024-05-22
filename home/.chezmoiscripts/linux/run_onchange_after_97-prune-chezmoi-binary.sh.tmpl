@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above include
+true || source ../.chezmoitemplates/scripts-library
+
+log_task "Temporary wl-copy (wl-clipboard) workaround"
+systemctl --user enable symlink-wayland-socket.service
