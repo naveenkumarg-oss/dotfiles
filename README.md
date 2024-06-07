@@ -20,22 +20,26 @@ wsl --update --pre-release
 wsl --update
 
 # Step 1: Download fresh Image
-# Interim Releases (valid for 9 months while LTS release is valid for 5 years)
-# Refer: https://cloud-images.ubuntu.com/wsl/
-# mantic 23.10 is the latest version as of Dec 2023. Beaware, this is non-LTS version.
+# 1 Download fresh Image
+# Interim Releases are valid for 9 months while LTS release is valid for 5 years
+# https://releases.ubuntu.com/
+# Ubuntu WSL Images > <release> > current > ubuntu-<release>-wsl-amd64-wsl.rootfs.tar.gz
+# At this time: 
+	# LTS Releases: 24.04 (Noble Numbat) 22.04.4 (Jammy Jellyfish) 20.04.6 (Focal Fossa)
+	# Interim Release: 23.10 (Mantic Minotaur)
 
 cd c:\workplay\my_wsl_env\_base_ubuntu_wsl_images
-curl -O https://cloud-images.ubuntu.com/wsl/mantic/current/ubuntu-mantic-wsl-amd64-wsl.rootfs.tar.gz
+curl -O https://cloud-images.ubuntu.com/wsl/releases/noble/current/ubuntu-noble-wsl-amd64-wsl.rootfs.tar.gz
 
 # Step 2: Import distribution
 # Create a new instance of WSL by importing base image
-# ubuntu-latest directory will be auto created
-wsl --import ubuntu-latest c:\workplay\my_wsl_env\__wsl_install_dir\ubuntu-latest c:\workplay\my_wsl_env\_base_ubuntu_wsl_images\<file-name-from-previous-step>
+# ubuntu-2404 directory will be auto created
+wsl --import ubuntu-<postfix> c:\workplay\my_wsl_env\__wsl_install_dir\ubuntu-2404 c:\workplay\my_wsl_env\_base_ubuntu_wsl_images\<file-name-from-previous-step>
 Example: 
-wsl --import ubuntu-latest c:\workplay\my_wsl_env\__wsl_install_dir\ubuntu-latest c:\workplay\my_wsl_env\_base_ubuntu_wsl_images\ubuntu-mantic-wsl-amd64-wsl.rootfs.tar.gz
+wsl --import ubuntu-2404 c:\workplay\my_wsl_env\__wsl_install_dir\ubuntu-2404 C:\workplay\my_wsl_env\_base_ubuntu_wsl_images\ubuntu-noble-wsl-amd64-wsl.rootfs.tar.gz
 
 # Step 3: First login
-wsl -d ubuntu-latest
+wsl -d ubuntu-2404
 
 # Setup user accounts
 NEW_USER=bndev
@@ -55,18 +59,20 @@ _EOF
 # shutdown instance and restart
 exit
 
-wsl -t ubuntu-latest
+wsl -t ubuntu-2404
 sleep 10
 wsl -l -v
-wsl -d ubuntu-latest
+wsl -d ubuntu-2404
 
 # Step 4: ONLY WHEN REQUIRED
 # pruge this installation, removing all traces of existence
-wsl -t ubuntu-latest
-wsl --unregister ubuntu-latest
+wsl -t ubuntu-2404
+wsl --unregister ubuntu-2404
 ```
 
 ## Install chezmoi
+
+### On Windows
 
 ```sh
 # Windows
@@ -78,6 +84,8 @@ pwsh.exe -ExecutionPolicy Unrestricted
 # Test install
 $Env:Path += ";$HOME\.local\bin"
 chezmoi --version
+
+### On Linux (WSL)
 
 # WSL, Linux
 # wget comes preinstalled with Ubuntu; curl many not be. Prefer wget here.
