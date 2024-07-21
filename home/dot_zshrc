@@ -54,7 +54,7 @@ eval "$(starship init zsh)"
 eval "$(mcfly init zsh)"
 
 # Set up fzf key bindings and fuzzy completion
-eval "$(fzf --zsh)"
+source <(fzf --zsh)
 
 # zoxide is a smarter cd command, inspired by z and autojump.
 eval "$(zoxide init zsh)"
