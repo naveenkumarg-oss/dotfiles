@@ -11,7 +11,7 @@ log_task "Running updates to ensure latest and greatest software is available"
 c sudo apt update && sudo apt upgrade -y
 # Commented becausetmp/1850606388.9999.sh: line 58: sdk: command not found
 # c sdk selfupdate force
-c brew outdated && brew upgrade && brew cleanup
+c brew update && brew upgrade && brew cleanup && brew outdated
 
 log_task "Done running updates to ensure latest and greatest software is available"
 log_task "END"
