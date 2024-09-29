@@ -1,31 +1,40 @@
 #!/bin/bash
 
-# OS version
-echo "OS Version:"
-lsb_release -d | cut -f2-
+# Get OS Version and Kernel version
+OS_VERSION=$(lsb_release -d | cut -f2-)
+KERNEL_VERSION=$(uname -r)
 
-# Kernel version
-echo -e "\nKernel Version:"
-uname -r
+# Print OS Version and Kernel version
+echo "Operating System: $OS_VERSION"
+echo "Kernel Version: $KERNEL_VERSION"
 
-# CPU Architecture
-echo -e "\nCPU Architecture:"
-lscpu | grep "Architecture" | awk '{print $2}'
+# Get CPU Architecture
+CPU_ARCH=$(lscpu | grep "Architecture" | awk '{print $2}')
 
-# CPU description
-echo -e "\nCPU Description:"
-lscpu | grep "Model name" | cut -d':' -f2- | sed 's/^[ \t]*//'
+# Print CPU Architecture
+echo "CPU Architecture: $CPU_ARCH"
 
-# CPU Cores
-echo -e "\nCPU Cores:"
-nproc --all
+# Get CPU Description
+CPU_DESC=$(lscpu | grep "Model name" | cut -d':' -f2 | xargs)
 
-# CPU Threads
-echo -e "\nCPU Threads:"
-lscpu | grep "Thread(s) per core" | awk '{print $4}'
+# Print CPU description
+echo "CPU Description: $CPU_DESC"
 
-# RAM Information
-echo -e "\nRAM Information:"
-free -h | grep -v total | awk '
+# Get CPU Cores and Threads
+CORES=$(lscpu | grep "Core(s) per socket" | awk '{print $4}')
+THREADS=$(lscpu | grep "Thread(s) per core" | awk '{print $4}')
+
+# Print CPU Cores and Threads
+echo "Total CPU Cores: $(nproc --all)"
+echo "CPU Cores: $CORES"
+echo "CPU Threads: $THREADS"
+
+# Get RAM Information
+RAM=$(free -m | awk '/Mem:/{print $2}')
+RAM_IN_USE=$(free -m | awk '/Mem:/{print $3}')
+RAM_FREE=$(free -m | awk '/Mem:/{print $4}')
+
+# Print RAM Information
+free -m | grep -v total | awk '
     /Mem:/ {print "Total RAM: " $2 " MB\nUsed RAM: " $3 " MB\nFree RAM: " $4 " MB"}
-    /Swap:/ {print "Total Swap: " $2 " MB\nUsed Swap: " $3 " MB\nFree Swap: " $4 " MB"}' 
+    /Swap:/ {print "Total Swap: " $2 " MB\nUsed Swap: " $3 " MB\nFree Swap: " $4 " MB"}'
