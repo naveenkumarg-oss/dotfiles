@@ -27,5 +27,5 @@ lscpu | grep "Thread(s) per core" | awk '{print $4}'
 # RAM Information
 echo -e "\nRAM Information:"
 free -h | grep -v total | awk '
-    /Mem:/ {print "Total RAM: " $2 "\nUsed RAM: " $3 "\nFree RAM: " $4}
-    /Swap:/ {print "Total Swap: " $2 "\nUsed Swap: " $3 "\nFree Swap: " $4}'
+    /Mem:/ {print "Total RAM: " $2 " MB\nUsed RAM: " $3 " MB\nFree RAM: " $4 " MB"}
+    /Swap:/ {print "Total Swap: " $2 " MB\nUsed Swap: " $3 " MB\nFree Swap: " $4 " MB"}' 
