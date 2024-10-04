@@ -22,8 +22,32 @@ ZSH_THEME=""
 plugins=(
   extract
   zsh-syntax-highlighting
+  zsh-completions
   zsh-autosuggestions
+  fzf-tab
 )
+
+# keybindings
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
+
+# History
+HISTSIZE=1000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_nodups
+setopt hist_find_no_dups
+
+# Completion styling
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:completion:cd:*' fzf-preview 'ls --color $realpath' 
 
 # https://github.com/zsh-users/zsh-completions/issues/603
 fpath+="${ZSH_CUSTOM:-"${ZSH}/custom"}/plugins/zsh-completions/src"
