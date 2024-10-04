@@ -29,6 +29,14 @@
   exact: true
   refreshPeriod: "168h"
 
+".oh-my-zsh/custom/plugins/fzf-tab":
+  type: archive
+  {{ $zshFzfTabRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-completions" $cache) }}
+  url: "https://github.com/Aloxaf/fzf-tab/archive/{{ $zshFzfTabRevision }}.tar.gz"
+  stripComponents: 1
+  exact: true
+  refreshPeriod: "168h"
+
 # ".local/bin/direnv":
 #   type: file
 #   {{ $direnvVersion := includeTemplate "get-github-latest-version" (list "direnv/direnv" $cache) }}
