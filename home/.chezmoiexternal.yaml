@@ -31,7 +31,7 @@
 
 ".oh-my-zsh/custom/plugins/fzf-tab":
   type: archive
-  {{ $zshFzfTabRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-completions" $cache) }}
+  {{ $zshFzfTabRevision := includeTemplate "get-github-head-revision" (list "Aloxaf/fzf-tab" $cache) }}
   url: "https://github.com/Aloxaf/fzf-tab/archive/{{ $zshFzfTabRevision }}.tar.gz"
   stripComponents: 1
   exact: true
