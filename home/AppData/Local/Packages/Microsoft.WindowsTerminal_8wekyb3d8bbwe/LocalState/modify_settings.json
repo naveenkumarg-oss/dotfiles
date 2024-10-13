@@ -3,7 +3,7 @@
 {{- $profileDefaultsSnippet := `
 {
     "antialiasingMode": "cleartype",
-    "colorScheme": "WildCherry",
+    "colorScheme": "Tokyo Night",
     "font": 
     {
         "face": "Monoid Nerd Font Mono",
