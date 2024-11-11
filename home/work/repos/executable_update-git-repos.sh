@@ -20,36 +20,9 @@ export GIT_TRACE=0
 export GIT_CURL_VERBOSE=0
 export GIT_TRACE_PERFORMANCE=0
 
-# Function to get current time in seconds with millisecond precision
+# Function to get current time in seconds
 get_time() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS implementation
-        gdate +%s.%3N 2>/dev/null || date +%s
-    else
-        # Linux implementation
-        date +%s.%3N 2>/dev/null || date +%s
-    fi
-}
-
-# Function to calculate duration between two timestamps
-calculate_duration() {
-    local start_time=$1
-    local end_time=$2
-    local duration
-    
-    if [[ $start_time == *.* && $end_time == *.* ]]; then
-        # Both times have decimal points, use bc for floating-point arithmetic
-        duration=$(echo "$end_time - $start_time" | bc 2>/dev/null)
-        # Check if bc calculation succeeded
-        if [[ $? -eq 0 && -n "$duration" ]]; then
-            printf "%.2f" "$duration"
-            return
-        fi
-    fi
-    
-    # Fallback to integer arithmetic
-    duration=$((end_time - start_time))
-    echo "$duration"
+    date +%s
 }
 
 # Function to log messages with mutex lock for clean output
@@ -145,7 +118,7 @@ update_repo() {
     # Perform optimized pull
     if git -c protocol.version=2 pull --ff-only --no-tags --prune origin "$current_branch" >/dev/null 2>&1; then
         local end_time=$(get_time)
-        local duration=$(calculate_duration "$start_time" "$end_time")
+        local duration=$((end_time - start_time))
         log "INFO" "Updated $repo_name (${duration}s)"
         
         # Trigger background maintenance
@@ -209,9 +182,9 @@ main() {
         fi
     done
 
-    # Calculate total execution time
+    # Calculate total execution time using simple integer arithmetic
     local end_time=$(get_time)
-    local total_duration=$(calculate_duration "$start_time" "$end_time")
+    local total_duration=$((end_time - start_time))
 
     # Print summary
     echo
