@@ -19,10 +19,6 @@ export GIT_TRACE_PACKET=0
 export GIT_TRACE=0
 export GIT_CURL_VERBOSE=0
 export GIT_TRACE_PERFORMANCE=0
-export GIT_QUICK_UPDATE=true  # Custom flag for our optimized mode
-
-# Optional: Disable TLS verify if you trust your remotes (uncomment if needed)
-# export GIT_SSL_NO_VERIFY=1
 
 # Function to log messages with mutex lock for clean output
 log() {
@@ -57,53 +53,79 @@ update_repo() {
     local repo_name=${repo_path##*/}
     local start_time=$(date +%s.%N)
     local status=0
+    local current_dir=$PWD
 
-    cd "$repo_path" || return 1
+    # Verify repository path exists and is a directory
+    if [[ ! -d "$repo_path" ]]; then
+        log "ERROR" "Directory not found: $repo_path"
+        return 1
+    fi
+
+    # Verify it's a git repository
+    if [[ ! -d "$repo_path/.git" ]]; then
+        log "ERROR" "Not a git repository: $repo_path"
+        return 1
+    }
+
+    # Change to repository directory
+    if ! cd "$repo_path" 2>/dev/null; then
+        log "ERROR" "Cannot access directory: $repo_path"
+        return 1
+    fi
 
     # Quick check for remote repository
     if ! git remote get-url origin >/dev/null 2>&1; then
         log "WARN" "Skipping $repo_name: no remote origin"
+        cd "$current_dir" 2>/dev/null
         return 0
     fi
 
-    # Use sparse-checkout if available (Git 2.27+)
-    git sparse-checkout init --cone >/dev/null 2>&1
-
     # Use built-in status check (fastest method)
     local branch_status
-    branch_status=$(git status -uno --porcelain=v2 --branch | grep -E "^# branch\.(ab|oid)" || echo "")
+    if ! branch_status=$(git status -uno --porcelain=v2 --branch 2>/dev/null); then
+        log "ERROR" "Failed to get status for $repo_name"
+        cd "$current_dir" 2>/dev/null
+        return 1
+    fi
 
-    # Skip if no upstream changes
-    if [[ ! $branch_status =~ behind ]]; then
+    # Check if repository needs update
+    if ! echo "$branch_status" | grep -q "behind"; then
         log "INFO" "Already up-to-date: $repo_name"
+        cd "$current_dir" 2>/dev/null
         return 0
     fi
 
     # Quick check for uncommitted changes using porcelain v2
     if [[ -n $(git status --porcelain=v2 -uno) ]]; then
         log "WARN" "Skipping $repo_name: uncommitted changes"
+        cd "$current_dir" 2>/dev/null
         return 1
     fi
 
     # Get current branch using modern command
     local current_branch
-    current_branch=$(git branch --show-current)
+    if ! current_branch=$(git branch --show-current 2>/dev/null); then
+        log "ERROR" "Failed to determine current branch for $repo_name"
+        cd "$current_dir" 2>/dev/null
+        return 1
+    fi
     
     # Perform optimized pull
-    if git -c protocol.version=2 pull --ff-only --no-tags --prune --recurse-submodules=no origin "$current_branch" >/dev/null 2>&1; then
+    if git -c protocol.version=2 pull --ff-only --no-tags --prune origin "$current_branch" >/dev/null 2>&1; then
         local end_time=$(date +%s.%N)
         local duration=$(printf "%.2f" "$(echo "$end_time - $start_time" | bc)")
         log "INFO" "Updated $repo_name (${duration}s)"
         
         # Trigger background maintenance
-        git maintenance run --quiet --auto >/dev/null 2>&1 &
+        (git maintenance run --quiet --auto >/dev/null 2>&1 &)
         status=0
     else
         log "ERROR" "Failed to update $repo_name"
         status=1
     fi
 
-    cd - >/dev/null || return 1
+    # Return to original directory
+    cd "$current_dir" 2>/dev/null
     return $status
 }
 
@@ -113,14 +135,18 @@ main() {
     local failed_count=0
     local skipped_count=0
 
-    # Find git repositories using fd if available (much faster than find)
-    local git_dirs
-    if command -v fd >/dev/null 2>&1; then
-        mapfile -t git_dirs < <(fd '^\.git$' --type d --hidden --prune | sed 's/\/\.git$//')
-    else
-        # Fallback to optimized find
-        mapfile -t git_dirs < <(find . -type d -name ".git" -prune -exec dirname {} \;)
-    fi
+    # Store the starting directory
+    local initial_dir=$PWD
+
+    # Find git repositories
+    local git_dirs=()
+    while IFS= read -r -d $'\0' git_dir; do
+        # Get the parent directory of .git
+        repo_path=$(dirname "$git_dir")
+        # Convert to absolute path if relative
+        [[ "$repo_path" != /* ]] && repo_path="$initial_dir/$repo_path"
+        git_dirs+=("$repo_path")
+    done < <(find "$initial_dir" -type d -name ".git" -print0)
 
     local total_count=${#git_dirs[@]}
     
@@ -134,6 +160,9 @@ main() {
 
     # Process repositories
     for repo_path in "${git_dirs[@]}"; do
+        # Skip if path doesn't exist
+        [[ ! -d "$repo_path" ]] && continue
+
         # Optimize repository configuration first
         optimize_repo "$repo_path"
         
@@ -162,10 +191,8 @@ main() {
     [[ $failed_count -gt 0 ]] && log "WARN" "Failed: $failed_count"
     [[ $skipped_count -gt 0 ]] && log "WARN" "Skipped: $skipped_count"
 
-    # Optional: Run final maintenance tasks in background
-    for repo_path in "${git_dirs[@]}"; do
-        (git -C "$repo_path" maintenance run --quiet --auto >/dev/null 2>&1 &)
-    done
+    # Return to initial directory
+    cd "$initial_dir" 2>/dev/null
 }
 
 # Version check for modern Git features
