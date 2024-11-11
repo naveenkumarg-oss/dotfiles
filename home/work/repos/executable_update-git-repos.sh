@@ -65,7 +65,7 @@ update_repo() {
     if [[ ! -d "$repo_path/.git" ]]; then
         log "ERROR" "Not a git repository: $repo_path"
         return 1
-    }
+    fi
 
     # Change to repository directory
     if ! cd "$repo_path" 2>/dev/null; then
@@ -166,15 +166,14 @@ main() {
         # Optimize repository configuration first
         optimize_repo "$repo_path"
         
-        # Update repository
+        # Update repository and track result
         if update_repo "$repo_path"; then
-            if [[ $? -eq 0 ]]; then
-                ((success_count++))
-            else
-                ((skipped_count++))
-            fi
+            ((success_count++))
         else
-            ((failed_count++))
+            case $? in
+                1) ((failed_count++));;
+                0) ((skipped_count++));;
+            esac
         fi
     done
 
@@ -192,7 +191,7 @@ main() {
     [[ $skipped_count -gt 0 ]] && log "WARN" "Skipped: $skipped_count"
 
     # Return to initial directory
-    cd "$initial_dir" 2>/dev/null
+    cd "$initial_dir" 2>/dev/null || true
 }
 
 # Version check for modern Git features
