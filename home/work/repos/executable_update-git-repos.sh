@@ -36,7 +36,7 @@ update_repo() {
     if ! git -C "$repo_path" remote update --prune > /dev/null 2>&1; then
         log "ERROR" "Failed to check remote updates for $repo_name"
         return 1
-    }
+    fi  # Fixed the syntax error here (changed '}' to 'fi')
 
     # Check if we're already up to date
     local LOCAL=$(git -C "$repo_path" rev-parse @{0})
@@ -45,20 +45,20 @@ update_repo() {
     if [ "$LOCAL" = "$REMOTE" ]; then
         log "INFO" "Already up to date: $repo_name"
         return 0
-    }
+    fi
     
     # Check if repository is clean only if we need to update
     if ! git -C "$repo_path" diff --quiet HEAD 2>/dev/null; then
         log "WARN" "Skipping $repo_name: uncommitted changes present"
         return 1
-    }
+    fi
     
     # Get current branch name directly (faster than checking remote)
     local current_branch=$(git -C "$repo_path" symbolic-ref --short HEAD 2>/dev/null)
     if [[ -z "$current_branch" ]]; then
         log "ERROR" "Could not determine current branch for $repo_name"
         return 1
-    }
+    fi
     
     # Pull changes only if we need to update
     if git -C "$repo_path" pull --ff-only origin "$current_branch" 2>/dev/null; then
