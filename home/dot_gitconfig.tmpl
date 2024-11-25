@@ -16,6 +16,7 @@
     # https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
     {{- if .is_ubuntu -}}
     autocrlf = input
+    pager = delta
     {{ else }}
     autocrlf = true
     {{- end -}}
@@ -29,10 +30,6 @@
     # Speed up commands involving untracked files such as `git status`.
     # See https://git-scm.com/docs/git-update-index#_untracked_cache
     untrackedCache = true
-    
-    {{- if .is_ubuntu -}}
-    pager = delta
-    {{- end -}}
     
 [pull]
     ff = only
@@ -104,6 +101,6 @@
     line-numbers-plus-style = 28
 {{- end }}
 [transfer]
-	fsckobjects = true
+    fsckobjects = true
 [receive]
-	fsckObjects = true
+    fsckObjects = true
