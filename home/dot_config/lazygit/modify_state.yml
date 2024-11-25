@@ -1,5 +1,0 @@
-hidecommandlog: false
-ignorewhitespaceindiffview: false
-
-{{- /* chezmoi:modify-template */ -}}
-{{- .chezmoi.stdin }}
