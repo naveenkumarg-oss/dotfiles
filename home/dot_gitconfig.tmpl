@@ -18,7 +18,7 @@
     autocrlf = input
     {{ else }}
     autocrlf = true
-    {{- end}}
+    {{- end -}}
 
     # Set comment character to something that allows mentioning issue numbers.
     commentChar = ";"
@@ -29,11 +29,11 @@
     # Speed up commands involving untracked files such as `git status`.
     # See https://git-scm.com/docs/git-update-index#_untracked_cache
     untrackedCache = true
-
+    
     {{- if .is_ubuntu -}}
     pager = delta
     {{- end -}}
-
+    
 [pull]
     ff = only
 
@@ -47,7 +47,7 @@
 [fetch]
     # Remove any remote-tracking references that no longer exist on the remote.
     prune = true
-   	fsckobjects = true
+    fsckobjects = true
 
 [help]
     # Correct and execute mistyped commands.
