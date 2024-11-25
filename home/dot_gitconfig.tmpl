@@ -13,14 +13,13 @@
     defaultBranch = main
 
 [core]
-    # https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
-    
-    {{- if .is_ubuntu -}}
+    # https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings    
+    {{ if .is_ubuntu -}}
     autocrlf = input
     pager = delta
     {{ else }}
     autocrlf = true
-    {{- end -}}
+    {{- end }}
 
     # Set comment character to something that allows mentioning issue numbers.
     commentChar = ";"
