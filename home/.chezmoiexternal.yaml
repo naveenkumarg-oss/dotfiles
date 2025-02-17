@@ -97,10 +97,10 @@
 
 # https://docs.github.com/en/copilot/managing-copilot/configure-personal-settings/installing-the-github-copilot-extension-in-your-environment?tool=vimneovim
 # https://docs.github.com/en/copilot/using-github-copilot/getting-code-suggestions-in-your-ide-with-github-copilot
-".config/nvim/pack/github/start/copilot.vim":
-    type: "git-repo"
-    url: "https://github.com/github/copilot.vim"
-    refreshPeriod: "168h"
+# ".config/nvim/pack/github/start/copilot.vim":
+#     type: "git-repo"
+#     url: "https://github.com/github/copilot.vim"
+#     refreshPeriod: "168h"
 
 {{- end }}
 
