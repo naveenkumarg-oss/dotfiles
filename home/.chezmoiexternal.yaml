@@ -21,13 +21,13 @@
   exact: true
   refreshPeriod: "168h"
 
-".oh-my-zsh/custom/plugins/zsh-completions":
-  type: archive
-  {{ $zshCompletionsRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-completions" $cache) }}
-  url: "https://github.com/zsh-users/zsh-completions/archive/{{ $zshCompletionsRevision }}.tar.gz"
-  stripComponents: 1
-  exact: true
-  refreshPeriod: "168h"
+# ".oh-my-zsh/custom/plugins/zsh-completions":
+#   type: archive
+#   {{ $zshCompletionsRevision := includeTemplate "get-github-head-revision" (list "zsh-users/zsh-completions" $cache) }}
+#   url: "https://github.com/zsh-users/zsh-completions/archive/{{ $zshCompletionsRevision }}.tar.gz"
+#   stripComponents: 1
+#   exact: true
+#   refreshPeriod: "168h"
 
 # ".oh-my-zsh/custom/plugins/fzf-tab":
 #   type: archive
@@ -97,7 +97,7 @@
 
 # https://docs.github.com/en/copilot/managing-copilot/configure-personal-settings/installing-the-github-copilot-extension-in-your-environment?tool=vimneovim
 # https://docs.github.com/en/copilot/using-github-copilot/getting-code-suggestions-in-your-ide-with-github-copilot
-"~/.config/nvim/pack/github/start/copilot.vim":
+".config/nvim/pack/github/start/copilot.vim":
     type: "git-repo"
     url: "https://github.com/github/copilot.vim"
     refreshPeriod: "168h"
