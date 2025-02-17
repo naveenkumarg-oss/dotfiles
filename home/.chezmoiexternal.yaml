@@ -29,13 +29,13 @@
   exact: true
   refreshPeriod: "168h"
 
-".oh-my-zsh/custom/plugins/fzf-tab":
-  type: archive
-  {{ $zshFzfTabRevision := includeTemplate "get-github-head-revision" (list "Aloxaf/fzf-tab" $cache) }}
-  url: "https://github.com/Aloxaf/fzf-tab/archive/{{ $zshFzfTabRevision }}.tar.gz"
-  stripComponents: 1
-  exact: true
-  refreshPeriod: "168h"
+# ".oh-my-zsh/custom/plugins/fzf-tab":
+#   type: archive
+#   {{ $zshFzfTabRevision := includeTemplate "get-github-head-revision" (list "Aloxaf/fzf-tab" $cache) }}
+#   url: "https://github.com/Aloxaf/fzf-tab/archive/{{ $zshFzfTabRevision }}.tar.gz"
+#   stripComponents: 1
+#   exact: true
+#   refreshPeriod: "168h"
 
 # ".local/bin/direnv":
 #   type: file
@@ -44,43 +44,43 @@
 #   executable: true
 #   refreshPeriod: "168h"
 
-".local/bin/kubecolor":
-  type: archive-file
-  {{ $kubecolorVersion := includeTemplate "get-github-latest-version" (list "hidetatz/kubecolor" $cache) }}
-  url: "https://github.com/hidetatz/kubecolor/releases/download/v{{ $kubecolorVersion }}/kubecolor_{{ $kubecolorVersion }}_Linux_{{ .uname_arch }}.tar.gz"
-  path: kubecolor
-  refreshPeriod: "168h"
+# ".local/bin/kubecolor":
+#   type: archive-file
+#   {{ $kubecolorVersion := includeTemplate "get-github-latest-version" (list "hidetatz/kubecolor" $cache) }}
+#   url: "https://github.com/hidetatz/kubecolor/releases/download/v{{ $kubecolorVersion }}/kubecolor_{{ $kubecolorVersion }}_Linux_{{ .uname_arch }}.tar.gz"
+#   path: kubecolor
+#   refreshPeriod: "168h"
 
-".local/bin/kubectx":
-  type: archive-file
-  {{ $kubectxVersion := includeTemplate "get-github-latest-version" (list "ahmetb/kubectx" $cache) }}
-  url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubectx_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
-  path: kubectx
-  refreshPeriod: "168h"
+# ".local/bin/kubectx":
+#   type: archive-file
+#   {{ $kubectxVersion := includeTemplate "get-github-latest-version" (list "ahmetb/kubectx" $cache) }}
+#   url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubectx_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
+#   path: kubectx
+#   refreshPeriod: "168h"
 
-".oh-my-zsh/custom/plugins/my-completions/_kubectx.zsh":
-  type: file
-  url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubectx.zsh"
-  refreshPeriod: "168h"
+# ".oh-my-zsh/custom/plugins/my-completions/_kubectx.zsh":
+#   type: file
+#   url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubectx.zsh"
+#   refreshPeriod: "168h"
 
-".local/bin/kubens":
-  type: archive-file
-  url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubens_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
-  path: kubens
-  refreshPeriod: "168h"
+# ".local/bin/kubens":
+#   type: archive-file
+#   url: "https://github.com/ahmetb/kubectx/releases/download/v{{ $kubectxVersion }}/kubens_v{{ $kubectxVersion }}_linux_{{ .uname_arch }}.tar.gz"
+#   path: kubens
+#   refreshPeriod: "168h"
 
-".oh-my-zsh/custom/plugins/my-completions/_kubens.zsh":
-  type: file
-  url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubens.zsh"
-  refreshPeriod: "168h"
+# ".oh-my-zsh/custom/plugins/my-completions/_kubens.zsh":
+#   type: file
+#   url: "https://github.com/ahmetb/kubectx/blob/master/completion/_kubens.zsh"
+#   refreshPeriod: "168h"
 
 # Required by kubectx and kubens
-".local/bin/fzf":
-  type: archive-file
-  {{ $fzfVersion := includeTemplate "get-github-latest-version" (list "junegunn/fzf" $cache) }}
-  url: "https://github.com/junegunn/fzf/releases/download/v{{ $fzfVersion }}/fzf-{{ $fzfVersion }}-linux_{{ .chezmoi.arch }}.tar.gz"
-  path: fzf
-  refreshPeriod: "168h"
+# ".local/bin/fzf":
+#   type: archive-file
+#   {{ $fzfVersion := includeTemplate "get-github-latest-version" (list "junegunn/fzf" $cache) }}
+#   url: "https://github.com/junegunn/fzf/releases/download/v{{ $fzfVersion }}/fzf-{{ $fzfVersion }}-linux_{{ .chezmoi.arch }}.tar.gz"
+#   path: fzf
+#   refreshPeriod: "168h"
 
 # ".local/bin/stern":
 #   type: archive-file
@@ -94,6 +94,13 @@
 #   url: "https://github.com/AstroNvim/AstroNvim"
 #   clone.args: "--depth 1"
 #   refreshPeriod: "168h"
+
+# https://docs.github.com/en/copilot/managing-copilot/configure-personal-settings/installing-the-github-copilot-extension-in-your-environment?tool=vimneovim
+# https://docs.github.com/en/copilot/using-github-copilot/getting-code-suggestions-in-your-ide-with-github-copilot
+"~/.config/nvim/pack/github/start/copilot.vim":
+    type = "git-repo"
+    url = "https://github.com/github/copilot.vim"
+    refreshPeriod = "168h"
 
 {{- end }}
 

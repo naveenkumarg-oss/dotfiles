@@ -80,8 +80,9 @@
     # Shows short SHA, description, and history graph of last 20 commits.
     l = log --pretty=oneline -n 20 --graph --abbrev-commit
 
+    # https://egghead.io/lessons/git-make-my-git-log-look-pretty-and-readable
     # Shows short SHA, description, history graph, time, and author of commits.
-    ll = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    ll = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --branches
 
     # Shows short SHA, date, description, history graph, and author of commits.
     lo = log --pretty=format:\"%Cred%h%Creset %Cgreen%ad%Creset | %s%C(auto)%d%Creset %C(bold blue)<%an>%Creset\" --graph --date=short
@@ -108,7 +109,7 @@
     # Rebases interactively with the given number of latest commits.
     reb = "!r() { git rebase -i HEAD~$1; }; r"
 
-    # Shows verbose output about remotes.
+    # verify remote url: Shows verbose output about remotes.
     remotes = remote -v
 
     # Restores savepoint.
@@ -150,7 +151,7 @@
     # Brings in remote changes and syncs back.
     sync = !git pull --rebase && git push
 
-    # Shows verbose output about tags.
+    # List tags: Shows verbose output about tags.
     tags = tag -l
 
     # Shows object type.

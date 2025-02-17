@@ -24,7 +24,7 @@ if ! sdk version &>/dev/null; then
   mv -f "${temp_sdkman_config}" "${original_sdkman_config}"
 fi
 
-java_version="22"
+java_version="23"
 identifier="$(sdk list java | grep --only-matching --max-count 1 --extended-regexp "\b${java_version}.[0-9]+.[0-9]+(.[0-9]+)?-graalce\b")"
 if ! sdk current java | grep -q "${identifier}"; then
   log_task "Installing Java ${java_version} with SDKMAN!"

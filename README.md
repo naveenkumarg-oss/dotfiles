@@ -9,6 +9,43 @@ My primary driver is to use chezmoi to manage WSL2 and Windows config.
 
 ## Install WSL2 distro
 
+### Latest
+
+https://ubuntu.com/desktop/wsl
+
+Feb, 2025
+https://ubuntu.com/blog/ubuntu-wsl-new-format-available
+
+```sh
+wsl --install ubuntu
+Downloading: Ubuntu
+Installing: Ubuntu
+Distribution successfully installed. It can be launched via 'wsl.exe -d Ubuntu'
+
+wsl -l -v
+  NAME                      STATE           VERSION
+  Ubuntu                    Stopped         2
+
+wsl -d Ubuntu
+Provisioning the new WSL instance Ubuntu
+This might take a while...
+Create a default Unix user account: nkumar
+New password:
+Retype new password:
+
+# Check wsl conf
+cat /etc/wsl.conf
+[boot]
+systemd=true
+
+[user]
+default=<user>
+
+# Create an empty ~/.hushlogin file
+nano .hushlogin
+```
+
+### Dated and superceded by above
 ```sh
 # https://learn.microsoft.com/en-us/windows/wsl/install
 # https://learn.microsoft.com/en-us/windows/wsl/wsl-config

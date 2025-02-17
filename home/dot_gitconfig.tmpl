@@ -33,6 +33,7 @@
     
 [pull]
     ff = only
+    rebase = true
 
 [push]
     autoSetupRemote = true
@@ -48,7 +49,7 @@
 
 [help]
     # Correct and execute mistyped commands.
-    autocorrect = 1
+    autocorrect = 3
 
 [merge]
     # Include summaries of merged commits in newly created merge commit messages.
@@ -80,6 +81,10 @@
 
     # Include extra configuration (if any).
     path = ~/.gitconfig_local
+
+# https://medium.com/@porteneuve/fix-conflicts-only-once-with-git-rerere-7d116b2cec67
+[rerere]
+  enabled = true
 
 {{ if .is_ubuntu -}}
 [delta]

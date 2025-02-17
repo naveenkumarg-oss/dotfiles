@@ -11,5 +11,5 @@ return {
   { import = "astrocommunity.editing-support.comment-box-nvim" },
   { import = "astrocommunity.indent.indent-rainbowline" },
   -- :Codeium Auth | <C-g>: accept suggestion
-  { import = "astrocommunity.completion.codeium-vim" },
+  -- { import = "astrocommunity.completion.codeium-vim" },
 }
