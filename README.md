@@ -121,11 +121,13 @@ pwsh.exe -ExecutionPolicy Unrestricted
 # Test install
 $Env:Path += ";$HOME\.local\bin"
 chezmoi --version
+```
 
 ### On Linux (WSL)
 
 # WSL, Linux
 # wget comes preinstalled with Ubuntu; curl many not be. Prefer wget here.
+```sh
 sh -c "$(wget -qO- get.chezmoi.io)" -- -b $HOME/.local/bin -- init --apply naveenkumarg-oss
 	# sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin -- init --apply naveenkumarg-oss
 
