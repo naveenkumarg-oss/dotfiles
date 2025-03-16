@@ -5,6 +5,9 @@ Import-Module -Name Terminal-Icons
 
 Import-Module -Name PSReadLine
 
+# https://github.com/badmotorfinger/z
+Install-Module -Name z
+
 # enable Predictive IntelliSense
 Set-PSReadLineOption -PredictionSource History
 Set-PSReadLineOption -PredictionViewStyle ListView
