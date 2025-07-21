@@ -3,13 +3,12 @@
 {{- $profileDefaultsSnippet := `
 {
     "antialiasingMode": "cleartype",
-    "colorScheme": "Tokyo Night",
+    "colorScheme": "Dark+",
     "font": 
     {
-        "face": "Monoid Nerd Font Mono",
-        "size": 12.0
+        "face": "Monaspace Argon",
+        "size": 14.0
     },
-    "useAtlasEngine": true
 }
 ` -}}
 
