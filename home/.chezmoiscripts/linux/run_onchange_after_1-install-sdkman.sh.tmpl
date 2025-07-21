@@ -11,32 +11,4 @@ if [[ ! -d "$HOME/.sdkman/bin" && -z "$(type -t sdk)" ]]; then
 
   sdkman_install_script=$(curl -fsSL "https://get.sdkman.io?rcupdate=false")
   bash -c "${sdkman_install_script}"
-
-  # Source SDKMAN init script in the current shell after installation
-  if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    source "$HOME/.sdkman/bin/sdkman-init.sh"
-    log_task "SDKMAN initialized in current shell."
-
-    install_default_sdk
-  fi
-else
-  log_green "SDKMAN is already installed or will be sourced."
-  # If SDKMAN is already installed or the 'sdk' command is found, ensure it's sourced in the current shell
-  if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    source "$HOME/.sdkman/bin/sdkman-init.sh"
-    log_blue "SDKMAN initialized in current shell."
-
-    install_default_sdk
-  fi
 fi
-
-function install_default_sdk() {
-  java_version="24"
-  identifier="$(sdk list java | grep --only-matching --max-count 1 --extended-regexp "\b${java_version}.[0-9]+.[0-9]+(.[0-9]+)?-graalce\b")"
-  if ! sdk current java | grep -q "${identifier}"; then
-    log_task "Installing Java ${java_version} with SDKMAN!"
-    c sdk install java "${identifier}"
-    c sdk default java "${identifier}"
-  fi
-
-}
