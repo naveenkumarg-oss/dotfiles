@@ -12,16 +12,19 @@ if [[ ! -d "$HOME/.sdkman/bin" && -z "$(type -t sdk)" ]]; then
   sdkman_install_script=$(curl -fsSL "https://get.sdkman.io?rcupdate=false")
   bash -c "${sdkman_install_script}"
 
-  # Source SDKMAN init script in the current shell after installation
   if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    # Save current shell options
+    set +u # Temporarily disable unbound variable checking
     source "$HOME/.sdkman/bin/sdkman-init.sh"
+    set -u # Re-enable unbound variable checking if it was active
     log_task "SDKMAN initialized in current shell."
   fi
 else
   log_green "SDKMAN is already installed or will be sourced."
-  # If SDKMAN is already installed or the 'sdk' command is found, ensure it's sourced in the current shell
   if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    set +u # Temporarily disable unbound variable checking
     source "$HOME/.sdkman/bin/sdkman-init.sh"
+    set -u # Re-enable unbound variable checking if it was active
     log_blue "SDKMAN initialized in current shell."
   fi
 fi
