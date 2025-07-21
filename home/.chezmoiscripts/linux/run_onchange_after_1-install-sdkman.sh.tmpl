@@ -5,7 +5,8 @@
 # The following line is for ShellCheck to correctly identify the above include
 true || source ../.chezmoitemplates/scripts-library
 
-if [[ -d "$HOME/.sdkman/bin" || -z "$(type -t sdk)" ]]; then
+# Check if SDKMAN is NOT installed and the 'sdk' command is NOT found
+if [[ ! -d "$HOME/.sdkman/bin" && -z "$(type -t sdk)" ]]; then
   log_task "Installing SDKMAN!"
 
   sdkman_install_script=$(curl -fsSL "https://get.sdkman.io?rcupdate=false")
@@ -17,8 +18,8 @@ if [[ -d "$HOME/.sdkman/bin" || -z "$(type -t sdk)" ]]; then
     log_task "SDKMAN initialized in current shell."
   fi
 else
-  log_green "SDKMAN is already installed."
-  # If SDKMAN is already installed, ensure it's sourced in the current shell
+  log_green "SDKMAN is already installed or will be sourced."
+  # If SDKMAN is already installed or the 'sdk' command is found, ensure it's sourced in the current shell
   if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
     source "$HOME/.sdkman/bin/sdkman-init.sh"
     log_blue "SDKMAN initialized in current shell."
