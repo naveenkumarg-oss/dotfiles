@@ -21,12 +21,6 @@ if [[ ! -d "$HOME/.sdkman/bin" && -z "$(type -t sdk)" ]]; then
   fi
 else
   log_green "SDKMAN is already installed or will be sourced."
-  if [[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    set +u # Temporarily disable unbound variable checking
-    source "$HOME/.sdkman/bin/sdkman-init.sh"
-    set -u # Re-enable unbound variable checking if it was active
-    log_blue "SDKMAN initialized in current shell."
-  fi
 fi
 
 java_version="24"
