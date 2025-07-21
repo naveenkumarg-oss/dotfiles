@@ -8,7 +8,7 @@ true || source ../.chezmoitemplates/scripts-library
 if ! sdk version &>/dev/null; then
   log_task "Installing SDKMAN!"
 
-  sdkman_install_script=$(curl -fsSL "https://get.sdkman.io")
+  sdkman_install_script=$(curl -fsSL "https://get.sdkman.io?ci=true")
   bash -c "${sdkman_install_script}"
 fi
 
