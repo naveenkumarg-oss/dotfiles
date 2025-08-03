@@ -359,4 +359,6 @@ System-specific aliases are marked with <b title="macOS"></b>, <b title="Wind
 
 #### Plugins
 
-- 
+### For consideration
+
+[GIT utilities -- repo summary, repl, changelog population, author commit percentages and more](https://github.com/tj/git-extras/)

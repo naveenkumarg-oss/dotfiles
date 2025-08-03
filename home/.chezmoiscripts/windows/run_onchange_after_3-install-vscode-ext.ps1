@@ -3,11 +3,9 @@
 # Remote development https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack
 code --install-extension ms-vscode-remote.vscode-remote-extensionpack
 
-# AI support. Free for individual use. https://codeium.com/
-code --install-extension Codeium.codeium
-
-# Pro is paid while Codeium is free for individual users.
-# code --install-extension TabNine.tabnine-vscode
+# AI support
+code --install-extension github.copilot
+code --install-extension github.copilot-chat
 
 # One Dark Pro theme https://marketplace.visualstudio.com/items?itemName=zhuangtongfa.Material-theme
 code --install-extension zhuangtongfa.material-theme
