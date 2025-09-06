@@ -44,12 +44,12 @@ if (!(Get-Command "ls" -ErrorAction "Ignore")) {
 }
 
 # Set-Alias -Name "l" -Value Get-ChildItemVisible -Description "Lists visible files in long format."
-function FL {& (Get-Command eza).path -l --icons --git-ignore}
-Set-Alias -Name "l" -Value FL -Description "Lists visible files in long format."
+function EZAL {& (Get-Command eza).path -l --icons --header --git-ignore}
+Set-Alias -Name "l" -Value EZAL -Description "Lists visible files in long format."
 
 # Set-Alias -Name "ll" -Value Get-ChildItemAll -Description "Lists all files in long format."
-function FLL {& (Get-Command eza).path -l -a --icons --header --hyperlink --git --git-repos}
-Set-Alias -Name "ll" -Value FLL -Description "Lists all files in long format."
+function EZALL {& (Get-Command eza).path -l -a --icons --header --git --git-repos}
+Set-Alias -Name "ll" -Value EZALL -Description "Lists all files in long format."
 
 Set-Alias -Name "lsd" -Value Get-ChildItemDirectory -Description "Lists only directories in long format."
 
