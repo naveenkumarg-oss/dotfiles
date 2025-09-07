@@ -306,3 +306,14 @@ Set-Alias -Name "sha256sum" -Value Get-FileHashSHA256 -Description "Calculates t
 Set-Alias -Name "forecast" -Value Get-WeatherForecast -Description "Displays detailed weather and forecast."
 
 Set-Alias -Name "weather" -Value Get-WeatherCurrent -Description "Displays current weather."
+
+# Chezmoi update
+function ChezmoiUpdate {
+    try {
+        Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -ErrorAction Stop
+        chezmoi update
+    } catch {
+        Write-Error "Failed to set ExecutionPolicy or run chezmoi update: $($_.Exception.Message)"
+    }
+}
+Set-Alias -Name "chezup" -Value ChezmoiUpdate -Description "Apply chezmoi update"
