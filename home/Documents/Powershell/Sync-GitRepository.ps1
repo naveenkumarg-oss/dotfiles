@@ -239,20 +239,18 @@ function gsync {
     param(
         [Parameter(Position=0, HelpMessage="Path to repository (defaults to current directory)")]
         [string]$Path = (Get-Location).Path,
-        
+
         [switch]$SkipMaintenance,
-        [switch]$UseFastForward,
-        [switch]$Verbose
+        [switch]$UseFastForward
     )
     
     $params = @{
         RepositoryPath = $Path
     }
-    
+
     if ($SkipMaintenance) { $params.SkipMaintenance = $true }
     if ($UseFastForward) { $params.UseFastForward = $true }
-    if ($Verbose) { $params.Verbose = $true }
-    
+
     Sync-GitRepository @params
 }
 
@@ -430,4 +428,4 @@ Write-Host "  Sync-GitRepository <path> - Full function with all parameters" -Fo
 
 # Quick aliases
 Set-Alias -Name gs -Value gsync
-Set-Alias -Name gp -Value gsync-projects
+Set-Alias -Name gsp -Value gsync-projects
