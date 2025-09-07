@@ -16,6 +16,11 @@ Import-Module -Name z
 # Determine user profile parent directory.
 $ProfilePath=Split-Path -parent $profile
 
+# Load Sync-GitRepository declarations from separate configuration file.
+if (Test-Path $ProfilePath/Sync-GitRepository.ps1) {
+    . $ProfilePath/Sync-GitRepository.ps1
+}
+
 # Load functions declarations from separate configuration file.
 if (Test-Path $ProfilePath/functions.ps1) {
     . $ProfilePath/functions.ps1
@@ -32,6 +37,3 @@ if (Test-Path $ProfilePath/extras.ps1) {
 }
 
 $env:Path += ";$env:UserProfile\.local\bin"
-
-# Alias
-function gst { git status } 
