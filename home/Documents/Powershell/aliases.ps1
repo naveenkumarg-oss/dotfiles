@@ -308,12 +308,7 @@ Set-Alias -Name "forecast" -Value Get-WeatherForecast -Description "Displays det
 Set-Alias -Name "weather" -Value Get-WeatherCurrent -Description "Displays current weather."
 
 # Chezmoi update
-function ChezmoiUpdate {
-    try {
-        Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -ErrorAction Stop
-        chezmoi update
-    } catch {
-        Write-Error "Failed to set ExecutionPolicy or run chezmoi update: $($_.Exception.Message)"
-    }
+function ChezmoiUpdateBypass {
+    powershell.exe -ExecutionPolicy Bypass -Command "chezmoi update"
 }
-Set-Alias -Name "chezup" -Value ChezmoiUpdate -Description "Apply chezmoi update"
+Set-Alias -Name chezup -Value ChezmoiUpdateBypass -Description "Apply chezmoi update using Bypass ExecutionPolicy"
