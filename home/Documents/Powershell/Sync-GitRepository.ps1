@@ -427,5 +427,5 @@ Write-Host "  gstatus [path]            - Quick repository status" -ForegroundCo
 Write-Host "  Sync-GitRepository <path> - Full function with all parameters" -ForegroundColor White
 
 # Quick aliases
-Set-Alias -Name gs -Value gsync
-Set-Alias -Name gsp -Value gsync-projects
+Set-Alias -Name gs -Value gstatus
+# Set-Alias -Name gsp -Value gsync-projects
