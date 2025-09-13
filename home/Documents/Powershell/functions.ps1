@@ -1977,6 +1977,36 @@ if ($IsWindows) {
 
 # Common paths
 # -----------------------------------------------------------------------------
+function Set-LocationMusic {
+    <#
+    .SYNOPSIS
+        Navigates to Music directory.
+    .INPUTS
+        None
+    .OUTPUTS
+        None
+    .LINK
+        Set-Location
+    #>
+    [CmdletBinding(
+        SupportsShouldProcess=$true,
+        ConfirmImpact='Low'
+    )]
+    param()
+
+    begin {
+        $path = Convert-Path -Path "${HOME}\Music"
+        Write-Verbose "Destination set to $path"
+    }
+
+    process {
+        if ($PSCmdlet.ShouldProcess($path, 'Go to directory')) {
+            Write-Verbose "Navigating to $path"
+            Set-Location $path
+        }
+    }
+}
+
 
 function Set-LocationDownloads {
     <#

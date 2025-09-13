@@ -255,6 +255,7 @@ if ($IsWindows) {
 
 # Common paths
 # -----------------------------------------------------------------------------
+Set-Alias -Name "musk" -Value Set-LocationMusic -Description "Navigates to Music directory."
 
 Set-Alias -Name "dls" -Value Set-LocationDownloads -Description "Navigates to Downloads directory."
 
