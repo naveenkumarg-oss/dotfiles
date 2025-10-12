@@ -34,9 +34,9 @@ if (-not (Test-Path $AudioFilePath)) {
 
 # Construct the arguments for the command.
 # The -m argument is followed by the model path, and the audio file path is the final argument.
-$arguments = "-m", $ModelPath, $AudioFilePath
+$arguments = "-np", "-nt", "-m", $ModelPath, $AudioFilePath
 
 # Use the call operator `&` to execute the command with the defined arguments.
 # This ensures that spaces or special characters in paths are handled correctly.
-Write-Host "Executing command: $WhisperCliPath -m $ModelPath $AudioFilePath"
+# Write-Host "Executing command: $WhisperCliPath -m $ModelPath $AudioFilePath"
 & $WhisperCliPath $arguments
