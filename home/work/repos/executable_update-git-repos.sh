@@ -12,6 +12,7 @@ REPO_SEARCH_ROOT="${PWD}"
 declare -r RED=$'\033[0;31m'
 declare -r GREEN=$'\033[0;32m'
 declare -r YELLOW=$'\033[1;33m'
+declare -r BLUE=$'\033[0;34m'
 declare -r NC=$'\033[0m' # No Color
  
 # Log levels
@@ -29,17 +30,20 @@ declare -A GIT_ENV_VARS=(
     [GIT_TRACE]=0
     [GIT_CURL_VERBOSE]=0
     [GIT_TRACE_PERFORMANCE]=0
+    # Ensure protocol v2 is used globally for Git 2.52 efficiency
+    [GIT_PROTOCOL_FROM_USER]=2
 )
 
 # Git configuration settings applied to each repository
+# Modern Git 2.52+ defaults are usually good, but these ensure consistency
 declare -A GIT_REPO_CONFIG=(
     [core.fsmonitor]=true
     [core.untrackedCache]=true
     [feature.manyFiles]=true
-    # Note: Disabling parallel fetch/submodule jobs can sometimes stabilize operations
-    # depending on Git version and system. Adjust if performance issues arise.
-    [fetch.parallel]=0
-    [submodule.fetchJobs]=0
+    [fetch.writeCommitGraph]=true
+    # Re-enabling parallel fetch for modern environments
+    [fetch.parallel]=4
+    [submodule.fetchJobs]=4
 )
 
 # --- Helper Functions ---
@@ -54,16 +58,15 @@ log() {
         "${INFO}") color="${GREEN}" ;;
         "${WARN}") color="${YELLOW}" ;;
         "${ERROR}") color="${RED}" ;;
-        *) color="${NC}" ;; # Default to no color for unknown levels
+        *) color="${NC}" ;;
     esac
 
-    # Using printf for better formatting and avoiding 'echo -e' quirks
     printf "%b[%s]%b %s\n" "${color}" "${level}" "${NC}" "${message}"
 }
 
-# Function to get current time in seconds (for duration calculation)
+# Function to get current time in seconds (optimized: no subshell/fork)
 get_time_s() {
-    date +%s
+    printf '%(%s)T' -1
 }
 
 # --- Core Logic Functions ---
@@ -71,113 +74,123 @@ get_time_s() {
 # Function to optimize git repository settings
 optimize_repo_settings() {
     local repo_path="$1"
-    log "${INFO}" "Optimizing settings for $(basename "$repo_path")..."
+    # Quietly apply settings
     for config_key in "${!GIT_REPO_CONFIG[@]}"; do
         git -C "$repo_path" config "$config_key" "${GIT_REPO_CONFIG[$config_key]}" >/dev/null 2>&1 || \
             log "${WARN}" "Failed to set Git config: $config_key for $(basename "$repo_path")"
     done
-    # Use || true to prevent 'set -e' from exiting if maintenance register fails
-    git -C "$repo_path" maintenance register --quiet >/dev/null 2>&1 || \
-        log "${WARN}" "Failed to register maintenance for $(basename "$repo_path")" || true
+    
+    # Modern Git Maintenance (prefetch, commit-graph, loose-objects, incremental-repack)
+    git -C "$repo_path" maintenance register --quiet >/dev/null 2>&1 || true
 }
 
 # Function to update a single repository
+# Returns: 0 = Updated, 1 = Error, 2 = Skipped/No-Op
 update_single_repo() {
     local repo_path="$1"
-    local repo_name=$(basename "$repo_path")
-    local start_time=$(get_time_s)
+    local repo_name
+    repo_name=$(basename "$repo_path")
+    local start_time
+    start_time=$(get_time_s)
 
     log "${INFO}" "Processing repository: $repo_name"
 
-    # Validate if it's a directory and a git repository
+    # 1. Access Check
     if [[ ! -d "$repo_path" ]]; then
         log "${ERROR}" "Directory not found: $repo_path"
         return 1
     fi
-    if [[ ! -d "$repo_path/.git" ]]; then
-        log "${ERROR}" "Not a Git repository: $repo_path"
-        return 1
-    fi
 
-    # Change to repository directory (subshell to avoid changing caller's PWD)
+    # Subshell for safety
     (
-        cd "$repo_path" || { log "${ERROR}" "Cannot access directory: $repo_path"; exit 1; }
+        cd "$repo_path" || exit 1
 
-        # Quick check for remote repository
-        if ! git remote get-url origin >/dev/null 2>&1; then
+        # 2. Validate Git Repository (Handles .git dirs and Worktree files)
+        if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            log "${WARN}" "Not a valid Git work tree: $repo_path"
+            exit 1
+        fi
+
+        # 3. Remote Check
+        local remote_url
+        if ! remote_url=$(git remote get-url origin 2>/dev/null); then
             log "${WARN}" "Skipping $repo_name: no remote origin found."
-            exit 0 # Exit subshell with 0 to indicate skipped, not failed
+            exit 2 # Exit code 2 for SKIP
         fi
 
-        # Get current branch
+        # 4. Get Current Branch (Plumbing command)
         local current_branch
-        if ! current_branch=$(git branch --show-current 2>/dev/null); then
-            log "${ERROR}" "Failed to determine current branch for $repo_name."
+        if ! current_branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+            log "${ERROR}" "Detached HEAD or invalid branch state in $repo_name."
             exit 1
         fi
+
+        # 5. Fetch (Optimized)
+        # Using --jobs and --prune. Protocol v2 handles the negotiation efficiently.
+        if ! git fetch origin --prune --jobs=4 --quiet >/dev/null 2>&1; then
+            log "${ERROR}" "Failed to fetch $repo_name."
+            exit 1
+        fi
+
+        # 6. Check Upstream Configuration
+        local upstream
+        if ! upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null); then
+             log "${WARN}" "Skipping $repo_name: Branch '$current_branch' has no upstream configured."
+             exit 2
+        fi
+
+        # 7. Check Divergence (The Modern Way: rev-list)
+        # This returns "A	B" where A is ahead count, B is behind count.
+        local counts
+        counts=$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null)
         
-        # --- IMPORTANT FIX: FETCH BEFORE STATUS CHECK ---
-        log "${INFO}" "Fetching latest changes for $repo_name..."
-        if ! git fetch origin >/dev/null 2>&1; then
-            log "${ERROR}" "Failed to fetch from remote for $repo_name. Check network or authentication."
-            exit 1
-        fi
-        # --- END IMPORTANT FIX ---
+        local ahead=${counts%	*}
+        local behind=${counts#*	}
 
-        # Use built-in status check (fastest method) - now it will be accurate
-        local branch_status
-        if ! branch_status=$(git status -uno --porcelain=v2 --branch 2>/dev/null); then
-            log "${ERROR}" "Failed to get status for $repo_name."
-            exit 1
-        fi
-
-        # --- CRITICAL FIX: Update regex for detecting 'behind' status ---
-        # Look for the '# branch.ab +A -B' line.
-        # We want to pull if A (ahead) is 0 AND B (behind) is greater than 0.
-        if echo "$branch_status" | grep -qE '^# branch.ab \+0 -[1-9][0-9]*$'; then
-            log "${INFO}" "Repository $repo_name is behind remote. Pulling changes..."
-            # Proceed to pull, no exit here.
-        else
-            log "${INFO}" "Already up-to-date: $repo_name"
-            exit 0 # Exit subshell, as no pull is needed
-        fi
-        # --- END CRITICAL FIX ---
-
-
-        # Check for uncommitted changes using porcelain v2
+        # 8. Uncommitted Changes Check (Porcelain v2 is correct here)
         if [[ -n $(git status --porcelain=v2 -uno) ]]; then
-            log "${WARN}" "Skipping $repo_name: uncommitted changes present."
-            exit 1 # Treat as a failure to update, not a skip
+            # If we are behind, this is a blocker. If we are up to date, it's just a warning.
+            if [[ "$behind" -gt 0 ]]; then
+                log "${WARN}" "Skipping update for $repo_name: Uncommitted changes present."
+                exit 1
+            fi
         fi
 
-        # Perform optimized pull
-        log "${INFO}" "Updating $repo_name..."
-        # We specify origin and current_branch explicitly for clarity and robustness
-        if git -c protocol.version=2 pull --ff-only --no-tags --prune origin "$current_branch" >/dev/null 2>&1; then
-            local end_time=$(get_time_s)
-            local duration=$((end_time - start_time))
-            log "${GREEN}" "Successfully updated $repo_name (${duration}s)"
+        # 9. Update Logic
+        if [[ "$behind" -gt 0 && "$ahead" -eq 0 ]]; then
+            log "${INFO}" "$repo_name is behind by $behind commits. Pulling..."
             
-            # Trigger background maintenance
-            git maintenance run --quiet --auto >/dev/null 2>&1 &
-            exit 0
+            if git pull --ff-only origin "$current_branch" --quiet >/dev/null 2>&1; then
+                local end_time
+                end_time=$(get_time_s)
+                local duration=$((end_time - start_time))
+                log "${GREEN}" "Successfully updated $repo_name in ${duration}s"
+                
+                # Background maintenance trigger
+                git maintenance run --auto --quiet >/dev/null 2>&1 &
+                exit 0 # Success
+            else
+                log "${ERROR}" "Failed to fast-forward $repo_name."
+                exit 1
+            fi
+        elif [[ "$behind" -gt 0 && "$ahead" -gt 0 ]]; then
+             log "${WARN}" "$repo_name has diverged (Ahead: $ahead, Behind: $behind). Manual intervention required."
+             exit 1
         else
-            log "${ERROR}" "Failed to update $repo_name."
-            exit 1
+            log "${BLUE}" "$repo_name is up-to-date."
+            exit 2 # Skip
         fi
-    ) # End of subshell
-
-    return $? # Return exit status of the subshell
+    )
+    return $?
 }
 
 # Main execution logic
 main() {
-    # initial_dir is now globally defined.
-    # This function uses the global initial_dir set at script start.
-    local start_total_time=$(get_time_s)
+    local start_total_time
+    start_total_time=$(get_time_s)
     local success_count=0
     local failed_count=0
-    local skipped_count=0 # For repos explicitly skipped (e.g., no remote)
+    local skipped_count=0
 
     # Set Git environment variables
     for var_name in "${!GIT_ENV_VARS[@]}"; do
@@ -185,86 +198,73 @@ main() {
     done
 
     # Find git repositories
-    local git_dirs=()
-    # Use -L for find to follow symlinks if desired, otherwise omit
-    while IFS= read -r -d $'\0' git_dir; do
-        # Get the parent directory of .git
-        local repo_path=$(dirname "$git_dir")
-        # Ensure absolute path
-        repo_path=$(readlink -f "$repo_path")
-        git_dirs+=("$repo_path")
-    done < <(find "$REPO_SEARCH_ROOT" -type d -name ".git" -print0)
+    # We look for .git (dir or file) to support worktrees
+    local git_items=()
+    while IFS= read -r -d $'\0' item; do
+        local repo_root
+        if [[ -d "$item" ]]; then
+            repo_root=$(dirname "$item")
+        else
+            # It's a file (worktree or submodule), parent is the root
+            repo_root=$(dirname "$item")
+        fi
+        git_items+=("$(readlink -f "$repo_root")")
+    done < <(find "$REPO_SEARCH_ROOT" -name ".git" -print0)
 
-    local total_count=${#git_dirs[@]}
+    # Sort and remove duplicates (in case find hits nested things oddly)
+    IFS=$'\n' read -d '' -r -a unique_repos < <(printf "%s\n" "${git_items[@]}" | sort -u && printf '\0')
+
+    local total_count=${#unique_repos[@]}
     
     if [[ $total_count -eq 0 ]]; then
         log "${WARN}" "No Git repositories found in $REPO_SEARCH_ROOT."
         return 0
     fi
 
-    log "${INFO}" "Found $total_count repositories in $REPO_SEARCH_ROOT"
+    log "${INFO}" "Found $total_count unique repositories in $REPO_SEARCH_ROOT"
     echo "------------------------------"
 
-    # Process repositories
-    for repo_path in "${git_dirs[@]}"; do
-        # Optimize repository configuration first
+    for repo_path in "${unique_repos[@]}"; do
         optimize_repo_settings "$repo_path"
         
-        # Update repository and track result
-        if update_single_repo "$repo_path"; then
-            ((success_count++))
-        else
-            local exit_code=$?
-            # update_single_repo explicitly exits subshell with 0 for skipped, 1 for failed
-            if [[ $exit_code -eq 0 ]]; then # This means it was explicitly skipped (e.g., no remote, already up-to-date)
-                ((skipped_count++))
-            else # Failed to update (e.g., uncommitted changes, pull error, directory access issue)
-                ((failed_count++))
-            fi
-        fi
+        update_single_repo "$repo_path"
+        local exit_code=$?
+        
+        case $exit_code in
+            0) ((success_count++)) ;;
+            1) ((failed_count++)) ;;
+            2) ((skipped_count++)) ;;
+        esac
     done
 
-    local end_total_time=$(get_time_s)
+    local end_total_time
+    end_total_time=$(get_time_s)
     local total_duration=$((end_total_time - start_total_time))
 
-    # Print summary
     echo
     log "${INFO}" "==== Summary ===="
     log "${INFO}" "Total execution time: ${total_duration} seconds"
     log "${INFO}" "Total repositories: $total_count"
-    log "${INFO}" "Successfully updated: $success_count"
+    log "${GREEN}" "Successfully updated: $success_count"
     if [[ $failed_count -gt 0 ]]; then
-        log "${ERROR}" "Failed to update: $failed_count"
+        log "${ERROR}" "Failed / Manual Check Needed: $failed_count"
     fi
     if [[ $skipped_count -gt 0 ]]; then
-        log "${WARN}" "Skipped (no remote/no update needed): $skipped_count"
+        log "${BLUE}" "Skipped (Up-to-date/No Remote): $skipped_count"
     fi
 }
 
 # --- Pre-execution Checks and Script Entry Point ---
 
-# Global variable to store the initial directory
-# This MUST be defined before the trap command.
 initial_dir="$PWD"
-
-# Trap to restore initial directory on exit
-# This should come AFTER initial_dir is defined.
 trap 'cd "$initial_dir" 2>/dev/null || true' EXIT
-
-# Check for Git version for modern features
-check_git_version() {
-    if ! git version | grep -qE 'git version ((2\.(2[5-9]|[3-9][0-9])|[3-9])\..*|2\.47)'; then
-        log "${WARN}" "This script recommends Git 2.25 or newer for optimal performance."
-        log "${WARN}" "Some features may not be fully optimized with your current Git version."
-    fi
-}
 
 # Parse command-line arguments
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -d|--directory)
-                if [[ -n "$2" && -d "$2" ]]; then
+                if [[ -n "${2:-}" && -d "$2" ]]; then
                     REPO_SEARCH_ROOT=$(readlink -f "$2")
                     shift 2
                 else
@@ -275,7 +275,6 @@ parse_args() {
             -h|--help)
                 echo "Usage: $0 [-d <directory>]"
                 echo "  -d, --directory <path>  Specify the root directory to search for Git repositories."
-                echo "                          Defaults to the current working directory."
                 echo "  -h, --help              Display this help message."
                 exit 0
                 ;;
@@ -283,11 +282,9 @@ parse_args() {
                 log "${ERROR}" "Unknown argument: $1"
                 exit 1
                 ;;
-        esac # Corrected from 'esutaac'
+        esac
     done
 }
 
-# Main script execution flow
 parse_args "$@"
-check_git_version
 main "$@"
