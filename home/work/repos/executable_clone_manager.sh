@@ -114,8 +114,8 @@ main() {
     # Use 'sed' to trim any leading/trailing whitespace around the URL.
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
-        parse_and_clone "$line"
-        ((processed_count++))
+        parse_and_clone "$line" || true
+        processed_count=$((processed_count + 1))
     done < <(tr -d '\r' < "$input_path" | grep "${TARGET_HOST_PREFIX}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
     echo "------------------------------"
