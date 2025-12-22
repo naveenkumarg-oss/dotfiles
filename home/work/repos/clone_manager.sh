@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Script Configuration ---
+# --- Script Configuration --- 
 set -euo pipefail
 shopt -s nullglob
 
