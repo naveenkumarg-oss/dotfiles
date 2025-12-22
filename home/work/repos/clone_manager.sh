@@ -30,6 +30,7 @@ export GIT_PROTOCOL_FROM_USER=2
 # --- Resource Management ---
 cleanup() {
     local exit_code=$?
+    # Ensure we close the socket and clean up the background SSH process
     ssh -O exit -o ControlPath="${SSH_SOCKET}" "${TARGET_HOST_PREFIX%%:*}" 2>/dev/null || true
     exit "$exit_code"
 }
@@ -53,17 +54,16 @@ log() {
 parse_and_clone() {
     local repo_url="$1"
 
-    # Precise Tokenization using parameter expansion
+    # Precise path extraction
     local raw_path="${repo_url#*:}"
     local clean_path="${raw_path%.git}"
 
     local relative_dir
     relative_dir=$(dirname "$clean_path")
-    
     local repo_name
     repo_name=$(basename "$clean_path")
 
-    # Determine absolute pathing
+    # Absolute path resolution
     local target_parent_dir
     if [[ "$relative_dir" == "." ]]; then
         target_parent_dir="${SCRIPT_DIR}"
@@ -76,7 +76,7 @@ parse_and_clone() {
     # Idempotency check
     if [[ -d "$final_repo_path" ]]; then
         if git -C "$final_repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            log "${BLUE}" "Skipping: ${repo_name} (Already exists)"
+            log "${BLUE}" "Skipping: ${repo_name} (Already exists at ${relative_dir})"
             return 0
         fi
     fi
@@ -84,7 +84,7 @@ parse_and_clone() {
     # Creation and Clone
     [[ ! -d "$target_parent_dir" ]] && mkdir -p "$target_parent_dir"
 
-    log "${INFO}" "Cloning ${repo_name} into ${relative_dir}..."
+    log "${INFO}" "Cloning ${repo_name}..."
     
     if git clone --quiet --jobs=4 "$repo_url" "$final_repo_path"; then
         log "${GREEN}" "Successfully cloned ${repo_name}"
@@ -104,22 +104,22 @@ main() {
         exit 1
     fi
 
-    log "${INFO}" "Reading repositories from ${INPUT_FILE}..."
+    log "${INFO}" "Scanning ${INPUT_FILE} for ${TARGET_HOST_PREFIX} repositories..."
     
     local processed_count=0
 
-    # High-performance pipeline:
-    # 1. tr deletes carriage returns (\r)
-    # 2. sed deletes lines starting with #, deletes empty lines, and trims whitespace
+    # The Expert Approach:
+    # Use grep to find only lines containing the host prefix.
+    # Use 'tr' to strip potential Windows carriage returns.
+    # Use 'sed' to trim any leading/trailing whitespace around the URL.
     while IFS= read -r line; do
-        if [[ "$line" == "${TARGET_HOST_PREFIX}"* ]]; then
-            parse_and_clone "$line"
-            ((processed_count++))
-        fi
-    done < <(tr -d '\r' < "$input_path" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d')
+        [[ -z "$line" ]] && continue
+        parse_and_clone "$line"
+        ((processed_count++))
+    done < <(tr -d '\r' < "$input_path" | grep "${TARGET_HOST_PREFIX}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
     echo "------------------------------"
-    log "${INFO}" "Processing complete. Checked $processed_count repositories."
+    log "${INFO}" "Execution complete. $processed_count valid repository entries processed."
 }
 
 main
