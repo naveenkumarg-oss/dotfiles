@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Script Configuration --- 
+# --- Script Configuration ---
 set -euo pipefail
 shopt -s nullglob
 
@@ -53,6 +53,7 @@ log() {
 parse_and_clone() {
     local repo_url="$1"
 
+    # Precise Tokenization using parameter expansion
     local raw_path="${repo_url#*:}"
     local clean_path="${raw_path%.git}"
 
@@ -62,15 +63,17 @@ parse_and_clone() {
     local repo_name
     repo_name=$(basename "$clean_path")
 
+    # Determine absolute pathing
+    local target_parent_dir
     if [[ "$relative_dir" == "." ]]; then
-        relative_dir=""
-        local target_parent_dir="${SCRIPT_DIR}"
+        target_parent_dir="${SCRIPT_DIR}"
     else
-        local target_parent_dir="${SCRIPT_DIR}/${relative_dir}"
+        target_parent_dir="${SCRIPT_DIR}/${relative_dir}"
     fi
 
     local final_repo_path="${target_parent_dir}/${repo_name}"
 
+    # Idempotency check
     if [[ -d "$final_repo_path" ]]; then
         if git -C "$final_repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             log "${BLUE}" "Skipping: ${repo_name} (Already exists)"
@@ -78,12 +81,10 @@ parse_and_clone() {
         fi
     fi
 
-    if [[ ! -d "$target_parent_dir" ]]; then
-        log "${INFO}" "Creating directory: ${relative_dir}"
-        mkdir -p "$target_parent_dir"
-    fi
+    # Creation and Clone
+    [[ ! -d "$target_parent_dir" ]] && mkdir -p "$target_parent_dir"
 
-    log "${INFO}" "Cloning ${repo_name}..."
+    log "${INFO}" "Cloning ${repo_name} into ${relative_dir}..."
     
     if git clone --quiet --jobs=4 "$repo_url" "$final_repo_path"; then
         log "${GREEN}" "Successfully cloned ${repo_name}"
@@ -107,24 +108,15 @@ main() {
     
     local processed_count=0
 
-    while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
-        # 1. Strip Carriage Returns (CRLF handling) and Trim Whitespace
-        local line
-        line=$(echo "$raw_line" | tr -d '\r')
-        line="${line#${line%%[![:space:]]*}}" # Leading trim
-        line="${line%${line##*[![:space:]]}}" # Trailing trim
-
-        # 2. Skip Logic (Improved for multiple hashes like ##)
-        [[ -z "$line" ]] && continue
-        [[ "$line" == "#"* ]] && continue
-
-        # 3. Match Valid Git Host
+    # High-performance pipeline:
+    # 1. tr deletes carriage returns (\r)
+    # 2. sed deletes lines starting with #, deletes empty lines, and trims whitespace
+    while IFS= read -r line; do
         if [[ "$line" == "${TARGET_HOST_PREFIX}"* ]]; then
             parse_and_clone "$line"
             ((processed_count++))
         fi
-
-    done < "$input_path"
+    done < <(tr -d '\r' < "$input_path" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d')
 
     echo "------------------------------"
     log "${INFO}" "Processing complete. Checked $processed_count repositories."
