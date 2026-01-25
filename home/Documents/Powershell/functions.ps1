@@ -519,14 +519,15 @@ function Copy-ItemSecure {
         [Parameter(Mandatory=$true)]
         [string]$Destination
     )
+    process {
+        $SourcePath = Split-Path -Path $Source
+        if (!$SourcePath) {
+            $SourcePath = '.'
+        }
+        $File = Split-Path -Path $Source -Leaf
 
-    $SourcePath = Split-Path -Path $Source
-    if (!$SourcePath) {
-        $SourcePath = '.'
+        robocopy /COPY:DAT /DCOPY:DAT /LEV:0 /R:1000000 /W:30 $SourcePath $Destination $File
     }
-    $File = Split-Path -Path $Source -Leaf
-
-    robocopy /COPY:DAT /DCOPY:DAT /LEV:0 /R:1000000 /W:30 $SourcePath $Destination $File
 }
 
 function Find-Directory {
@@ -603,8 +604,9 @@ function Copy-ItemMirror {
         [Parameter()]
         [string]$Flags
     )
-
-    robocopy /MIR /COPY:DAT /DCOPY:DAT /R:1000000 /W:30 $Source $Destination $Files $Flags
+    process {
+        robocopy /MIR /COPY:DAT /DCOPY:DAT /R:1000000 /W:30 $Source $Destination $Files $Flags
+    }
 }
 
 function New-ItemEmpty {
@@ -629,11 +631,13 @@ function New-ItemEmpty {
         [string]$File
     )
 
-    if (Test-Path $File) {
-        (Get-ChildItem $File).LastWriteTime = Get-Date
-    }
-    else {
-        New-Item -ItemType File $File
+    process {
+        if (Test-Path $File) {
+            (Get-ChildItem $File).LastWriteTime = Get-Date
+        }
+        else {
+            New-Item -ItemType File $File
+        }
     }
 }
 
@@ -719,16 +723,18 @@ function New-ItemSetLocation {
         [string]$Path
     )
 
-    if (!(Test-Path -path $Path)) {
-        if ($PSCmdlet.ShouldProcess($Path, 'Create directory')) {
-            New-Item -ItemType Directory -Path $Path
-            Write-Verbose "Path $Path created."
+    process {
+        if (!(Test-Path -path $Path)) {
+            if ($PSCmdlet.ShouldProcess($Path, 'Create directory')) {
+                New-Item -ItemType Directory -Path $Path
+                Write-Verbose "Path $Path created."
+            }
         }
-    }
 
-    if ($PSCmdlet.ShouldProcess($Path, 'Go to directory')) {
-        Write-Verbose "Navigating to $Path"
-        Set-Location -Path $Path -PassThru
+        if ($PSCmdlet.ShouldProcess($Path, 'Go to directory')) {
+            Write-Verbose "Navigating to $Path"
+            Set-Location -Path $Path -PassThru
+        }
     }
 }
 
@@ -1447,28 +1453,28 @@ function Update-Packages {
     )]
     param()
 
-    Write-Host "Looks for updates for system modules and help, then proceeds to updating any packages by these optional managers: Chocolatey, Choco, npm, RubyGems."
+    Write-Output "Looks for updates for system modules and help, then proceeds to updating any packages by these optional managers: Chocolatey, Choco, npm, RubyGems."
 
     if ($PSCmdlet.ShouldProcess("System modules", "Update")) {
-        Write-Host "Updating system modules..." -ForegroundColor $ColorInfo
+        Write-Output "Updating system modules..."
         Update-Module
     }
 
     if ($PSCmdlet.ShouldProcess("Help files", "Update")) {
-        Write-Host "Updating help files..." -ForegroundColor $ColorInfo
+        Write-Output "Updating help files..."
         Update-Help -Force
     }
 
     if (Get-Command 'choco' -ErrorAction "Ignore") {
         if ($PSCmdlet.ShouldProcess("Chocolatey packages", "Update")) {
-            Write-Host "Updating packages with Chocolatey..." -ForegroundColor $ColorInfo
+            Write-Output "Updating packages with Chocolatey..."
             choco upgrade all
         }
     }
 
     if (Get-Command 'scoop' -ErrorAction "Ignore") {
         if ($PSCmdlet.ShouldProcess("Scoop packages", "Update")) {
-            Write-Host "Updating packages with Scoop..." -ForegroundColor $ColorInfo
+            Write-Output "Updating packages with Scoop..."
             scoop update *
             scoop cleanup *
         }
@@ -1476,7 +1482,7 @@ function Update-Packages {
 
     if (Get-Command 'npm' -ErrorAction "Ignore") {
         if ($PSCmdlet.ShouldProcess("Node.js packages", "Update")) {
-            Write-Host "Updating Node.js packages with npm..." -ForegroundColor $ColorInfo
+            Write-Output "Updating Node.js packages with npm..."
             # npm install npm -g
             npm update -g
         }
@@ -1484,14 +1490,14 @@ function Update-Packages {
 
     if (Get-Command 'gem' -ErrorAction "Ignore") {
         if ($PSCmdlet.ShouldProcess("Ruby gems", "Update")) {
-            Write-Host "Updating Ruby gems..." -ForegroundColor $ColorInfo
+            Write-Output "Updating Ruby gems..."
             gem update --system
             gem update
             gem cleanup
         }
     }
 
-    Write-Host "Done!"
+    Write-Output "Done!"
 }
 
 function Search-Command {
@@ -1517,8 +1523,9 @@ function Search-Command {
         )]
         [string]$Command
     )
-
-    Get-Command $Command -ErrorAction SilentlyContinue
+    process {
+        Get-Command $Command -ErrorAction SilentlyContinue
+    }
 }
 
 
@@ -2307,7 +2314,9 @@ function Get-FileHashMD5 {
         )]
         [string]$Path
     )
-    Get-FileHash $Path -Algorithm MD5
+    process {
+        Get-FileHash $Path -Algorithm MD5
+    }
 }
 
 function Get-FileHashSHA1 {
@@ -2338,7 +2347,9 @@ function Get-FileHashSHA1 {
         )]
         [string]$Path
     )
-    Get-FileHash $Path -Algorithm SHA1
+    process {
+        Get-FileHash $Path -Algorithm SHA1
+    }
 }
 
 function Get-FileHashSHA256 {
@@ -2369,7 +2380,9 @@ function Get-FileHashSHA256 {
         )]
         [string]$Path
     )
-    Get-FileHash $Path -Algorithm SHA256
+    process {
+        Get-FileHash $Path -Algorithm SHA256
+    }
 }
 
 function Get-Weather {
@@ -2457,4 +2470,118 @@ function Get-WeatherCurrent {
     param()
 
     Get-Weather 'format=%l:+(%C)+%c++%t+[%h,+%w]'
+}
+
+
+# Productivity / QoL helpers
+# -----------------------------------------------------------------------------
+
+# Make Escape clear the current input line (PSReadLine aware)
+try {
+    if (Get-Command Set-PSReadLineKeyHandler -ErrorAction SilentlyContinue) {
+        try {
+            Set-PSReadLineKeyHandler -Key Escape -ScriptBlock {
+                [Microsoft.PowerShell.PSConsoleReadLine]::ClearLine()
+                [Microsoft.PowerShell.PSConsoleReadLine]::Repaint()
+            }
+        }
+        catch {
+            try { Set-PSReadLineKeyHandler -Key Escape -Function ClearLine } catch { Write-Verbose "PSReadLine fallback failed: $($_.Exception.Message)" }
+        }
+    }
+}
+catch { Write-Verbose "PSReadLine key handler setup failed: $($_.Exception.Message)" }
+
+function gr {
+    <#
+    .SYNOPSIS
+        Change directory to the top of the current git repository.
+    #>
+    param()
+    $root = & git rev-parse --show-toplevel 2>$null
+    if ($LASTEXITCODE -eq 0 -and $root) {
+        Set-Location $root
+    }
+    else {
+        Write-Warning "Not in a git repository"
+    }
+}
+
+function Serve-Dir {
+    <#
+    .SYNOPSIS
+        Starts a simple HTTP server for the current directory.
+    .PARAMETER Port
+        Port to serve on (default 8000).
+    #>
+    param([int]$Port = 8000)
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        Start-Process -FilePath python -ArgumentList "-m","http.server",$Port -NoNewWindow
+    }
+    elseif (Get-Command python3 -ErrorAction SilentlyContinue) {
+        Start-Process -FilePath python3 -ArgumentList "-m","http.server",$Port -NoNewWindow
+    }
+    else {
+        Write-Warning "Python not found. Install Python to use Serve-Dir."
+    }
+}
+
+function Kill-Port {
+    <#
+    .SYNOPSIS
+        Kills process(es) listening on a TCP port.
+    .PARAMETER Port
+        The local TCP port to free.
+    #>
+    param([Parameter(Mandatory=$true)][int]$Port)
+    $pids = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+    if ($pids) {
+        $pids | ForEach-Object {
+            $pidToKill = $_
+            try {
+                Stop-Process -Id $pidToKill -Force -ErrorAction Stop
+                Write-Output "Killed PID $pidToKill"
+            }
+            catch {
+                Write-Warning "Failed to kill PID $pidToKill : $($_.Exception.Message)"
+            }
+        }
+    }
+    else {
+        Write-Output "No listener found on port $Port"
+    }
+}
+
+function psg {
+    <#
+    .SYNOPSIS
+        Search for processes by name or path fragment.
+    .PARAMETER Pattern
+        Regex or substring to match against process name/path.
+    #>
+    param([string]$Pattern)
+    if (-not $Pattern) { Get-Process }
+    else { Get-Process | Where-Object { $_.ProcessName -match $Pattern -or ($_.Path -and $_.Path -match $Pattern) } }
+}
+
+function Edit-Profile {
+    <#
+    .SYNOPSIS
+        Opens the PowerShell profile in an editor (VS Code preferred).
+    #>
+    if (Get-Command code -ErrorAction SilentlyContinue) { code $PROFILE }
+    elseif (Get-Command notepad -ErrorAction SilentlyContinue) { notepad $PROFILE }
+    else { Start-Process -FilePath $PROFILE }
+}
+
+function fj {
+    <#
+    .SYNOPSIS
+        Pretty-print JSON from pipeline or file.
+    #>
+    param([Parameter(ValueFromPipeline=$true)]$InputObject)
+    process {
+        if ($InputObject) { $InputObject | ConvertTo-Json -Depth 10 }
+        elseif ($args) { Get-Content -Raw $args | ConvertFrom-Json | ConvertTo-Json -Depth 10 }
+    }
 }
