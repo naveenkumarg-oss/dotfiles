@@ -103,11 +103,3 @@
 #     refreshPeriod: "168h"
 
 {{- end }}
-
-
-{{ if .is_windows -}}
-"./AppData/Roaming/Notepad++/themes/Dracula.xml":
-  type: file
-  url: "https://raw.githubusercontent.com/dracula/notepad-plus-plus/master/Dracula.xml"
-  refreshPeriod: "168h"
-{{- end }}

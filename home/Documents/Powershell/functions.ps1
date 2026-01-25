@@ -2478,17 +2478,10 @@ function Get-WeatherCurrent {
 
 # Make Escape clear the current input line (PSReadLine aware)
 try {
-    if (Get-Command Set-PSReadLineKeyHandler -ErrorAction SilentlyContinue) {
-        try {
-            Set-PSReadLineKeyHandler -Key Escape -ScriptBlock {
-                [Microsoft.PowerShell.PSConsoleReadLine]::ClearLine()
-                [Microsoft.PowerShell.PSConsoleReadLine]::Repaint()
-            }
-        }
-        catch {
-            try { Set-PSReadLineKeyHandler -Key Escape -Function ClearLine } catch { Write-Verbose "PSReadLine fallback failed: $($_.Exception.Message)" }
-        }
-    }
+    # Make Escape clear the current input line (PSReadLine aware)
+	if (Get-Command Set-PSReadLineKeyHandler -ErrorAction SilentlyContinue) {
+		Set-PSReadLineKeyHandler -Key Escape -Function RevertLine
+	}
 }
 catch { Write-Verbose "PSReadLine key handler setup failed: $($_.Exception.Message)" }
 
