@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# clone_manager.sh
+#
+# Description:
+#   Clone Git repositories listed in repos.md that match a target host prefix.
+#   The script mirrors the path structure from each repo URL into the
+#   directory that contains this script, skips repositories that already
+#   exist, and registers successful clones with git maintenance.
+#
+# Usage:
+#   1) Create or update repos.md in this directory with one repo URL per line.
+#      Example: git@gitlab.otxlab.net:group/project.git
+#   2) Run: ./executable_clone_manager.sh
+#
+# Notes:
+#   - Lines that do not contain the target host prefix are ignored.
+#   - Existing repositories are not re-cloned.
+
 # --- Script Configuration ---
 set -euo pipefail
 shopt -s nullglob
@@ -18,6 +35,7 @@ declare -r NC=$'\033[0m'
 
 # Log levels
 declare -r INFO="INFO"
+declare -r SUCCESS="SUCCESS"
 declare -r WARN="WARN"
 declare -r ERROR="ERROR"
 
@@ -42,7 +60,8 @@ log() {
     local message="$2"
     local color=""
     case "$level" in
-        "${INFO}") color="${GREEN}" ;;
+        "${INFO}") color="${BLUE}" ;;
+        "${SUCCESS}") color="${GREEN}" ;;
         "${WARN}") color="${YELLOW}" ;;
         "${ERROR}") color="${RED}" ;;
         *) color="${NC}" ;;
@@ -76,7 +95,7 @@ parse_and_clone() {
     # Idempotency check
     if [[ -d "$final_repo_path" ]]; then
         if git -C "$final_repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            log "${BLUE}" "Skipping: ${repo_name} (Already exists at ${relative_dir})"
+            log "${INFO}" "Skipping: ${repo_name} (Already exists at ${relative_dir})"
             return 0
         fi
     fi
@@ -87,7 +106,7 @@ parse_and_clone() {
     log "${INFO}" "Cloning ${repo_name}..."
     
     if git clone --quiet --jobs=4 "$repo_url" "$final_repo_path"; then
-        log "${GREEN}" "Successfully cloned ${repo_name}"
+        log "${SUCCESS}" "Successfully cloned ${repo_name}"
         git -C "$final_repo_path" maintenance register --quiet >/dev/null 2>&1 || true
     else
         log "${ERROR}" "Failed to clone ${repo_url}"
@@ -116,7 +135,7 @@ main() {
         [[ -z "$line" ]] && continue
         parse_and_clone "$line" || true
         processed_count=$((processed_count + 1))
-    done < <(tr -d '\r' < "$input_path" | grep "${TARGET_HOST_PREFIX}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    done < <(tr -d '\r' < "$input_path" | grep -F "${TARGET_HOST_PREFIX}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
     echo "------------------------------"
     log "${INFO}" "Execution complete. $processed_count valid repository entries processed."

@@ -362,3 +362,9 @@ System-specific aliases are marked with <b title="macOS"></b>, <b title="Wind
 ### For consideration
 
 [GIT utilities -- repo summary, repl, changelog population, author commit percentages and more](https://github.com/tj/git-extras/)
+
+# Emerging Alternatives
+
+## WinGet Configuration
+
+https://developer.microsoft.com/blog/winget-configuration-set-up-your-dev-machine-in-one-command

@@ -1,8 +1,26 @@
 #!/bin/bash
 
+# update-git-repos.sh
+#
+# Summary:
+# - Recursively finds Git worktrees under the target directory and fast-forwards
+#   each repository to its configured upstream branch.
+# - Skips repositories with no upstream, detached HEADs, or uncommitted changes
+#   when an update is required.
+# - Uses Git maintenance and per-repo config to keep performance high.
+#
+# Usage:
+#   ./update-git-repos.sh
+#   ./update-git-repos.sh -d /path/to/root
+#
+# Notes:
+# - Uses the upstream remote (from @{u}) to avoid stale tracking refs.
+# - Requires: git, find, readlink, sort.
+# - Exit codes per repo: 0 updated, 1 error/manual, 2 skipped.
+
 # --- Script Configuration ---
 # Set bash options for better performance and error handling
-set -euo pipefail
+set -uo pipefail
 shopt -s nullglob
 
 # Default root directory to search for repositories
@@ -19,6 +37,8 @@ declare -r NC=$'\033[0m' # No Color
 declare -r INFO="INFO"
 declare -r WARN="WARN"
 declare -r ERROR="ERROR"
+declare -r OK="OK"
+declare -r SKIP="SKIP"
 
 # Git environment variables for optimized performance
 declare -A GIT_ENV_VARS=(
@@ -58,6 +78,8 @@ log() {
         "${INFO}") color="${GREEN}" ;;
         "${WARN}") color="${YELLOW}" ;;
         "${ERROR}") color="${RED}" ;;
+        "${OK}") color="${GREEN}" ;;
+        "${SKIP}") color="${BLUE}" ;;
         *) color="${NC}" ;;
     esac
 
@@ -88,12 +110,18 @@ optimize_repo_settings() {
 # Returns: 0 = Updated, 1 = Error, 2 = Skipped/No-Op
 update_single_repo() {
     local repo_path="$1"
+    local repo_index="${2:-}"
+    local repo_total="${3:-}"
     local repo_name
     repo_name=$(basename "$repo_path")
     local start_time
     start_time=$(get_time_s)
 
-    log "${INFO}" "Processing repository: $repo_name"
+    if [[ -n "$repo_index" && -n "$repo_total" ]]; then
+        log "${INFO}" "[$repo_index/$repo_total] $repo_name"
+    else
+        log "${INFO}" "Processing repository: $repo_name"
+    fi
 
     # 1. Access Check
     if [[ ! -d "$repo_path" ]]; then
@@ -111,41 +139,49 @@ update_single_repo() {
             exit 1
         fi
 
-        # 3. Remote Check
-        local remote_url
-        if ! remote_url=$(git remote get-url origin 2>/dev/null); then
-            log "${WARN}" "Skipping $repo_name: no remote origin found."
-            exit 2 # Exit code 2 for SKIP
-        fi
-
-        # 4. Get Current Branch (Plumbing command)
+        # 3. Get Current Branch (Plumbing command)
         local current_branch
         if ! current_branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
             log "${ERROR}" "Detached HEAD or invalid branch state in $repo_name."
             exit 1
         fi
 
-        # 5. Fetch (Optimized)
-        # Using --jobs and --prune. Protocol v2 handles the negotiation efficiently.
-        if ! git fetch origin --prune --jobs=4 --quiet >/dev/null 2>&1; then
-            log "${ERROR}" "Failed to fetch $repo_name."
-            exit 1
-        fi
-
-        # 6. Check Upstream Configuration
+        # 4. Check Upstream Configuration
         local upstream
-        if ! upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null); then
+        if ! upstream=$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null); then
              log "${WARN}" "Skipping $repo_name: Branch '$current_branch' has no upstream configured."
              exit 2
         fi
 
-        # 7. Check Divergence (The Modern Way: rev-list)
-        # This returns "A	B" where A is ahead count, B is behind count.
+        local upstream_remote="${upstream%%/*}"
+        if ! git remote get-url "$upstream_remote" >/dev/null 2>&1; then
+            log "${WARN}" "Skipping $repo_name: upstream remote '$upstream_remote' not found."
+            exit 2
+        fi
+
+        # 5. Fetch upstream remote so @{u} is fresh
+        # Using --jobs and --prune. Protocol v2 handles the negotiation efficiently.
+        if ! git fetch "$upstream_remote" --prune --jobs=4 --quiet >/dev/null 2>&1; then
+            log "${ERROR}" "Failed to fetch $repo_name."
+            exit 1
+        fi
+
+        # 6. Check Divergence (The Modern Way: rev-list)
+        # This returns "A\tB" where A is commits in upstream not in HEAD (behind),
+        # and B is commits in HEAD not in upstream (ahead).
         local counts
-        counts=$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null)
-        
-        local ahead=${counts%	*}
-        local behind=${counts#*	}
+        if ! counts=$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null); then
+            log "${ERROR}" "Failed to compare $repo_name against $upstream."
+            exit 1
+        fi
+        if [[ -z "$counts" ]]; then
+            log "${ERROR}" "Empty divergence result for $repo_name against $upstream."
+            exit 1
+        fi
+
+        local behind
+        local ahead
+        IFS=$' \t' read -r behind ahead <<<"$counts"
 
         # 8. Uncommitted Changes Check (Porcelain v2 is correct here)
         if [[ -n $(git status --porcelain=v2 -uno) ]]; then
@@ -160,11 +196,11 @@ update_single_repo() {
         if [[ "$behind" -gt 0 && "$ahead" -eq 0 ]]; then
             log "${INFO}" "$repo_name is behind by $behind commits. Pulling..."
             
-            if git pull --ff-only origin "$current_branch" --quiet >/dev/null 2>&1; then
+            if git merge --ff-only "$upstream" --quiet >/dev/null 2>&1; then
                 local end_time
                 end_time=$(get_time_s)
                 local duration=$((end_time - start_time))
-                log "${GREEN}" "Successfully updated $repo_name in ${duration}s"
+                log "${OK}" "$repo_name updated in ${duration}s (behind: $behind, ahead: $ahead)"
                 
                 # Background maintenance trigger
                 git maintenance run --auto --quiet >/dev/null 2>&1 &
@@ -174,10 +210,10 @@ update_single_repo() {
                 exit 1
             fi
         elif [[ "$behind" -gt 0 && "$ahead" -gt 0 ]]; then
-             log "${WARN}" "$repo_name has diverged (Ahead: $ahead, Behind: $behind). Manual intervention required."
+             log "${WARN}" "$repo_name has diverged (ahead: $ahead, behind: $behind). Manual intervention required."
              exit 1
         else
-            log "${BLUE}" "$repo_name is up-to-date."
+            log "${SKIP}" "$repo_name is up-to-date (ahead: $ahead, behind: $behind)"
             exit 2 # Skip
         fi
     )
@@ -224,10 +260,12 @@ main() {
     log "${INFO}" "Found $total_count unique repositories in $REPO_SEARCH_ROOT"
     echo "------------------------------"
 
+    local repo_index=0
     for repo_path in "${unique_repos[@]}"; do
+        repo_index=$((repo_index + 1))
         optimize_repo_settings "$repo_path"
-        
-        update_single_repo "$repo_path"
+
+        update_single_repo "$repo_path" "$repo_index" "$total_count"
         local exit_code=$?
         
         case $exit_code in
@@ -245,12 +283,12 @@ main() {
     log "${INFO}" "==== Summary ===="
     log "${INFO}" "Total execution time: ${total_duration} seconds"
     log "${INFO}" "Total repositories: $total_count"
-    log "${GREEN}" "Successfully updated: $success_count"
+    log "${OK}" "Successfully updated: $success_count"
     if [[ $failed_count -gt 0 ]]; then
         log "${ERROR}" "Failed / Manual Check Needed: $failed_count"
     fi
     if [[ $skipped_count -gt 0 ]]; then
-        log "${BLUE}" "Skipped (Up-to-date/No Remote): $skipped_count"
+        log "${SKIP}" "Skipped (Up-to-date/No Remote): $skipped_count"
     fi
 }
 
