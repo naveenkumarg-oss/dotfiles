@@ -1,260 +1,492 @@
-# https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
+# =============================================================================
+# llama-server Manager
+# Docs: https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
+# My Configuration: NVIDIA T600 4GB VRAM, 64GB RAM, 12th Gen i7-12800H (16P+4E cores = 20 threads), Vulkan backend
+# Backend: Vulkan / CUDA / CPU
+# =============================================================================
 
-# Set your desired model name
-$modelName = "liquidai-lfm2-1.2b"
-#$modelName = "gemma-3n-e2b"
-#$modelName = "gemma-3n-e4b"
-#$modelName = "qwen3-4b-it-2507"
-#$modelName = "gpt-oss-20b"
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
+# =============================================================================
+# CONFIGURATION — Edit this section only
+# =============================================================================
 
-# Define or import the Get-ModelArgs function first
-function Get-ModelArgs {
+# --- Active model (uncomment one) ---
+#$ActiveModel = "qwen3.5-9B"
+#$ActiveModel = "qwen3.5-4B"
+#$ActiveModel = "qwen3.5-9B-instruct"
+$ActiveModel = "qwen3.5-4B-instruct"
+#$ActiveModel = "gemma-3n-e2b"
+#$ActiveModel = "gemma-3n-e4b"
+#$ActiveModel = "liquidai-lfm2-2.6b"
+
+# --- Backend (uncomment one) ---
+#$Backend = "cuda"
+#$Backend = "cpu"
+$Backend = "vulkan"
+
+# --- Paths ---
+$Paths = @{
+    cuda   = "C:\worktools\llama-cpp-cuda"
+    cpu    = "C:\worktools\llama-cpp-cpu"
+    vulkan = "C:\worktools\llama-cpp-vulkan"
+    models = "C:\worktools\gguf-models"
+}
+
+# --- Common server flags (applied to all models) ---
+# Keys map 1:1 to llama-server CLI flags. Use $null for bare flags (no value).
+$CommonArgs = [ordered]@{
+    "-t"              = 12       # CPU threads (P-cores only on i7-12800H)
+    "-n"              = -1       # Max tokens to predict (-1 = unlimited)
+    "-mg"             = 1        # Main GPU index — 0 = Intel Iris Xe, 1 = NVIDIA T600
+    "--port"          = 5001
+    "--host"          = "127.0.0.1"
+    "--log-verbosity" = 0		 # 1 lowest, 10 highest
+    "--no-webui"      = $null    # bare flag
+    "--offline"       = $null    # bare flag
+    "-fa"             = "on"     # Flash Attention (accepts on|off|auto)
+}
+
+# =============================================================================
+# MODEL REGISTRY
+# Each entry is a hashtable with:
+#   File        - GGUF filename (resolved against $Paths.models)
+#   Args        - hashtable of model-specific flags
+#   Reasoning   - value for --reasoning flag: "on", "off", or $null (omit flag)
+#   Description - shown in status output
+# =============================================================================
+$ModelRegistry = @{
+
+    "qwen3.5-9b" = @{
+        Description       = "Qwen3.5 9B (thinking, Q4_K_XL)"
+        File              = "Qwen3.5-9B-UD-Q4_K_XL.gguf"
+        Reasoning         = "on"
+        Args              = [ordered]@{
+            "-ngl"              = 15       # ~3.3 GB on T600 — tune up if VRAM allows
+            "--cache-type-k"    = "q8_0"
+            "--cache-type-v"    = "q8_0"
+            "-c"                = 16384
+            "--temp"            = 0.6
+            "--top-k"           = 20
+            "--top-p"           = 0.95
+            "--min-p"           = 0.0
+            "--presence-penalty"= 1.0
+        }
+    }
+
+    "qwen3.5-9b-instruct" = @{
+        Description       = "Qwen3.5 9B (non-thinking / instruct, Q4_K_XL)"
+        File              = "Qwen3.5-9B-UD-Q4_K_XL.gguf"
+        Reasoning         = "off"
+        Args              = [ordered]@{
+            "-ngl"              = 15
+            "--cache-type-k"    = "q8_0"
+            "--cache-type-v"    = "q8_0"
+            "-c"                = 16384
+            "--temp"            = 0.7
+            "--top-k"           = 20
+            "--top-p"           = 0.8
+            "--min-p"           = 0.0
+            "--presence-penalty"= 1.5
+        }
+    }
+
+    "qwen3.5-4b" = @{
+        Description       = "Qwen3.5 4B (thinking, Q4_K_XL)"
+        File              = "Qwen3.5-4B-UD-Q4_K_XL.gguf"
+        Reasoning         = "on"
+        Args              = [ordered]@{
+			"-t"				= 4
+			"--threads-batch" 	= 8
+            "-ngl"              = 99		# 33 layers, leads to OOM if kept at 99" or -1 for auto/all
+			"--no-mmap"			= $null
+            "--cache-type-k"    = "q4_0"
+            "--cache-type-v"    = "q4_0"
+            "-c"                = 8192
+			"-b"				= 2048
+			"-ub"				= 768
+			"--prio"			= 3
+            "--temp"            = 0.6
+            "--top-k"           = 20
+            "--top-p"           = 0.95
+            "--min-p"           = 0.0
+            "--presence-penalty"= 1.0
+        }
+    }
+
+    "qwen3.5-4b-instruct" = @{
+        Description       = "Qwen3.5 4B (non-thinking / instruct, Q4_K_XL)"
+        File              = "Qwen3.5-4B-UD-Q4_K_XL.gguf"
+        Reasoning         = "off"
+        Args              = [ordered]@{
+			"-t"				= 4
+			"--threads-batch" 	= 8
+            "-ngl"              = 99		# 33 layers, leads to OOM if kept at 99" or -1 for auto/all
+			"--no-mmap"			= $null
+            "--cache-type-k"    = "q4_0"
+            "--cache-type-v"    = "q4_0"
+            "-c"                = 8192
+			"-b"				= 2048
+			"-ub"				= 512
+			"--prio"			= 3
+            "--reasoning-format"= "none"
+            "--reasoning-budget"= 0
+            "--temp"            = 0.7
+            "--top-k"           = 20
+            "--top-p"           = 0.8
+            "--min-p"           = 0.0
+            "--presence-penalty"= 1.5
+        }
+    }
+
+    "qwen3-4b-it-2507" = @{
+        Description       = "Qwen3 4B Instruct 2507 (Q5_K_M)"
+        File              = "Qwen3-4B-Instruct-2507-Q5_K_M.gguf"
+        Reasoning         = $null
+        Args              = [ordered]@{
+            "-ngl"              = 20
+            "-c"                = 8192
+            "-ub"               = 2048
+            "-b"                = 2048
+            "--jinja"           = $null
+            "--temp"            = 0.7
+            "--top-k"           = 20
+            "--top-p"           = 0.8
+            "--min-p"           = 0.0
+            "--presence-penalty"= 1.0
+        }
+    }
+
+    "gemma-3n-e4b" = @{
+        Description       = "Gemma 3n E4B Instruct (Q4_K_M)"
+        File              = "gemma-3n-E4B-it-Q4_K_M.gguf"
+        Reasoning         = $null
+        Args              = [ordered]@{
+            "-ngl"              = 20
+            "--n-cpu-moe"       = 12
+            "-c"                = 4096
+            "-ub"               = 2048
+            "-b"                = 2048
+            "--temp"            = 1.0
+            "--top-k"           = 64
+            "--top-p"           = 0.95
+            "--min-p"           = 0.0
+            "--repeat-penalty"  = 1.0
+        }
+    }
+
+    "gpt-oss-20b" = @{
+        Description       = "GPT-OSS 20B (Q5_K_M, non-thinking)"
+        File              = "gpt-oss-20b-Q5_K_M.gguf"
+        Reasoning         = $null
+        Args              = [ordered]@{
+            "-c"                = 8192
+            "-ub"               = 2048
+            "-b"                = 2048
+            "--n-cpu-moe"       = 35
+            "--jinja"           = $null
+            "--reasoning-format"= "none"
+            "--reasoning-budget"= 0
+            "--temp"            = 1.0
+            "--top-k"           = 0
+            "--top-p"           = 1.0
+        }
+    }
+
+    "liquidai-lfm2-2.6b" = @{
+        Description       = "LiquidAI LFM2 2.6B (Q8_0)"
+        File              = "LFM2-2.6B-Q8_0.gguf"
+        Reasoning         = $null
+        Args              = [ordered]@{
+            "-ngl"              = 99
+            "--temp"            = 0.3
+            "--min-p"           = 0.15
+            "--presence-penalty"= 1.05
+        }
+    }
+}
+
+# =============================================================================
+# DERIVED PATHS — do not edit below this line
+# =============================================================================
+$BasePath      = $Paths[$Backend]
+$ServerExe     = Join-Path $BasePath "llama-server.exe"
+$CliExe        = Join-Path $BasePath "llama-cli.exe"
+$PidFile       = Join-Path $BasePath ".pid"
+
+# =============================================================================
+# ARGUMENT BUILDER
+# Converts an ordered hashtable into a clean string[] suitable for Start-Process.
+# Bare flags (value = $null) are emitted without a value.
+# =============================================================================
+function Build-ArgArray {
     param(
-        [Parameter(Mandatory=$true)]
-        [string]$ModelName
+        [System.Collections.Specialized.OrderedDictionary]$ArgTable
     )
-
-    switch ($ModelName.Trim().ToLower()) {		
-        "gemma-3n-e2b" {
-            return '-m c:\worktools\gguf-models\gemma-3n-E2B-it-Q5_K_M.gguf -c 4096 -ngl 99 --seed 3407 --prio 2 --temp 1.0 --repeat-penalty 1.0 --min-p 0.00 --top-k 64 --top-p 0.95'
-        }
-		"gemma-3n-e4b" {
-            return '-m c:\worktools\gguf-models\gemma-3n-E4B-it-Q4_K_M.gguf -c 4096 -ngl 20 --n-cpu-moe 12 --temp 1.0 --min-p 0.00 --top-k 64 --top-p 0.95 --repeat-penalty 1.0 -ub 2048 -b 2048'
-        }
-        "gpt-oss-20b" {
-            return '-m c:\worktools\gguf-models\gpt-oss-20b-Q5_K_M.gguf -c 8192 --temp 1.0 --top-p 1.0 --top-k 0 --jinja --reasoning-format none --reasoning-budget 0 -ub 2048 -b 2048 --n-cpu-moe 35'
-        }
-		"qwen3-4b-it-2507" {
-            return '-m c:\worktools\gguf-models\Qwen3-4B-Instruct-2507-Q5_K_M.gguf -c 8192 -ngl 20 --n-cpu-moe 12 -ub 2048 -b 2048 --temp 0.7 --top-p 0.80 --top-k 20 --min-p 0.00 --presence_penalty 1.0 --jinja'
-        }
-		"liquidai-lfm2-1.2b" {
-            return '-m c:\worktools\gguf-models\LFM2-1.2B-F16.gguf -c 24576 -ngl 16 --temp 0.3 --min-p 0.15 --presence_penalty 1.05 -ub 2048 -b 2048'
-        }
-        "mellum-4b" {
-            return '-m c:\worktools\gguf-models\mellum-4b-sft-all.Q8_0.gguf -c 8192 -ngl 15 --temp 0'
-        }
-        default {
-            Write-Warning "Model configuration for '$ModelName' not found."
-            return $null
-        }
-    }
-}
-
-# Get model-specific arguments
-$modelSpecificArgs = Get-ModelArgs -ModelName $modelName
-
-if (-not $modelSpecificArgs) {
-    Write-Error "Failed to retrieve arguments for model '$modelName'. Exiting."
-    exit 1
-}
-
-# Common arguments - now using array to avoid parsing issues
-# -ngl, --n-gpu-layers				number of layers to store in VRAM
-# -n, --predict, --n-predict N 		number of tokens to predict (default: -1, -1 = infinity)
-# -mg, --main-gpu 					INDEX the GPU to use for the model 
-# -fa, --flash-attn					enable Flash Attention (default: disabled)
-# --log-disable
-$cliToolArguments = "-t 12", "-n -1", "-mg 1", "-fa on", "--log-verbosity 0", "--no-webui", "--offline", "--port 5001"
-$cliToolArguments += $modelSpecificArgs -split ' ' | Where-Object { $_ -ne '' }
-
-$basePath = "c:\worktools\llama-cpp-vulkan"
-$cliToolPath = "$basePath\llama-cli.exe"
-$serverToolPath = "$basePath\llama-server.exe"
-$pidFilePath = "$basePath\.pid"
-
-# Now $cliToolArguments is a clean array of arguments, ready to pass to a CLI tool
-
-
-# --- Helper Functions ---
-
-function Get-RunningProcessId {
-    <#
-    .SYNOPSIS
-    Reads the PID from the PID file and checks if the corresponding process is running.
-
-    .OUTPUTS
-    System.Diagnostics.Process object if the process is running, otherwise $null.
-    #>
-    param()
-    
-    if (-not (Test-Path $pidFilePath)) {
-        Write-Host "PID file '$pidFilePath' not found." -ForegroundColor Yellow
-        return $null
-    }
-
-    $pidContent = Get-Content $pidFilePath -ErrorAction SilentlyContinue
-    if ([string]::IsNullOrWhiteSpace($pidContent)) {
-        Write-Host "PID file '$pidFilePath' is empty or invalid." -ForegroundColor Yellow
-        Remove-Item $pidFilePath -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    $parsedPid = 0
-    if (-not ([int]::TryParse($pidContent, [ref]$parsedPid))) {
-        Write-Host "PID in file '$pidFilePath' is not a valid number: '$pidContent'. Deleting file." -ForegroundColor Red
-        Remove-Item $pidFilePath -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    try {
-        # Using $parsedPid instead of $pid to avoid conflict
-        $process = Get-Process -Id $parsedPid -ErrorAction SilentlyContinue
-        if ($process -and -not $process.HasExited) {
-            return $process
+    $result = [System.Collections.Generic.List[string]]::new()
+    foreach ($key in $ArgTable.Keys) {
+        $val = $ArgTable[$key]
+        if ($null -eq $val) {
+            $result.Add($key)
         } else {
-            Write-Host "Process with PID $parsedPid (from file) is not running or has exited." -ForegroundColor Yellow
-            Remove-Item $pidFilePath -ErrorAction SilentlyContinue
-            return $null
+            $result.Add($key)
+            $result.Add([string]$val)
         }
-    } catch {
-        # Corrected line: Using ${_} to explicitly delimit the $_ variable for parsing
-		Write-Host "Error checking process with PID $processId $($_.Exception.Message)" -ForegroundColor Red
-        Remove-Item $pidFilePath -ErrorAction SilentlyContinue
+    }
+    return $result.ToArray()
+}
+
+function Get-ResolvedModelConfig {
+    param([string]$ModelName)
+
+    $key = $ModelName.Trim().ToLower()
+    if (-not $ModelRegistry.ContainsKey($key)) {
         return $null
     }
+    $config = $ModelRegistry[$key]
+    $config.ModelPath = Join-Path $Paths.models $config.File
+    return $config
 }
 
-function Write-ProcessIdToFile {
-    <#
-    .SYNOPSIS
-    Writes the given Process ID to the PID file.
-    #>
-    param(
-        [Parameter(Mandatory=$true)]
-        [int]$ProcessId
-    )
-    try {
-        Set-Content -Path $pidFilePath -Value $ProcessId -Force
-        Write-Host "Process ID $ProcessId written to '$pidFilePath'." -ForegroundColor Green
-    } catch {
-        Write-Host "Error writing PID to file '$pidFilePath': $($_.Exception.Message)" -ForegroundColor Red
+function Build-ServerArgArray {
+    param([string]$ModelName)
+
+    $config = Get-ResolvedModelConfig -ModelName $ModelName
+    if (-not $config) { return $null }
+
+    # Merge: common args first, then model-specific (model wins on collision)
+    $merged = [ordered]@{}
+    foreach ($k in $CommonArgs.Keys)          { $merged[$k] = $CommonArgs[$k] }
+    foreach ($k in $config.Args.Keys)         { $merged[$k] = $config.Args[$k] }
+
+    # Prepend model path
+    $merged = [ordered]@{ "-m" = $config.ModelPath } + $merged
+
+    # Append --reasoning if defined for this model
+    if ($config.Reasoning) {
+        $merged["--reasoning"] = $config.Reasoning
     }
+
+    return Build-ArgArray -ArgTable $merged
 }
 
-# --- Main Functions for User Options ---
+# =============================================================================
+# PID FILE HELPERS
+# =============================================================================
+function Get-TrackedProcess {
+    if (-not (Test-Path $PidFile)) { return $null }
 
-function Start-CliProcess {
-    <#
-    .SYNOPSIS
-    Starts the CLI tool in the background, checking for existing processes first.
-    #>
-    param()
+    $raw = Get-Content $PidFile -ErrorAction SilentlyContinue
+    $parsedPid = 0
+    if (-not ([int]::TryParse($raw, [ref]$parsedPid))) {
+        Write-Warning "PID file contains invalid value '$raw'. Removing."
+        Remove-Item $PidFile -ErrorAction SilentlyContinue
+        return $null
+    }
 
-    Write-Host "Attempting to start CLI tool..." -ForegroundColor Cyan
+    $proc = Get-Process -Id $parsedPid -ErrorAction SilentlyContinue
+    if ($proc -and -not $proc.HasExited) {
+        return $proc
+    }
 
-    $existingProcess = Get-RunningProcessId
-    if ($existingProcess) {
-        Write-Host "CLI tool is already running with PID $($existingProcess.Id). Not starting a new instance." -ForegroundColor Yellow
+    Write-Host "  Stale PID $parsedPid — process no longer running." -ForegroundColor DarkYellow
+    Remove-Item $PidFile -ErrorAction SilentlyContinue
+    return $null
+}
+
+function Write-PidFile {
+    param([int]$ProcessId)
+    Set-Content -Path $PidFile -Value $ProcessId -Force
+    Write-Host "  PID $ProcessId saved to '$PidFile'." -ForegroundColor DarkGreen
+}
+
+# =============================================================================
+# MENU ACTIONS
+# =============================================================================
+function Start-Server {
+    Write-Host "`n[Start]" -ForegroundColor Cyan
+
+    $existing = Get-TrackedProcess
+    if ($existing) {
+        Write-Host "  Server already running — PID $($existing.Id). Aborting." -ForegroundColor Yellow
         return
     }
 
-    Write-Host "No existing process found or existing process is invalid. Starting a new instance..." -ForegroundColor Yellow
+    $config = Get-ResolvedModelConfig -ModelName $ActiveModel
+    if (-not $config) {
+        Write-Error "  Model '$ActiveModel' not found in registry."
+        return
+    }
+    if (-not (Test-Path $config.ModelPath)) {
+        Write-Error "  Model file not found: $($config.ModelPath)"
+        return
+    }
+    if (-not (Test-Path $ServerExe)) {
+        Write-Error "  Server executable not found: $ServerExe"
+        return
+    }
+
+    $args = Build-ServerArgArray -ModelName $ActiveModel
+
+    Write-Host "  Backend  : $Backend ($BasePath)" -ForegroundColor DarkCyan
+    Write-Host "  Model    : $($config.Description)" -ForegroundColor DarkCyan
+    Write-Host "  Command  : $ServerExe $($args -join ' ')" -ForegroundColor DarkGray
+
     try {
-        # Start the process in the background without a new window
-        $newProcess = Start-Process -FilePath $serverToolPath `
-                                    -ArgumentList $cliToolArguments `
-                                    -NoNewWindow `
-                                    -PassThru `
-                                    -ErrorAction Stop
-
-        Write-ProcessIdToFile -ProcessId $newProcess.Id
-        Write-Host "CLI tool started successfully in the background with PID $($newProcess.Id)." -ForegroundColor Green
+        $proc = Start-Process -FilePath $ServerExe `
+                              -ArgumentList $args `
+                              -NoNewWindow `
+                              -PassThru `
+                              -ErrorAction Stop
+        Write-PidFile -ProcessId $proc.Id
+        Write-Host "  Server started — PID $($proc.Id). Listening on port $($CommonArgs['--port'])." -ForegroundColor Green
     } catch {
-        Write-Host "Failed to start CLI tool: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Please ensure '$serverToolPath' is a valid executable and accessible." -ForegroundColor Red
+        Write-Host "  Failed to start server: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
-function Check-CliProcessStatus {
-    <#
-    .SYNOPSIS
-    Checks and reports the status of the background CLI tool.
-    #>
-    param()
+function Show-Status {
+    Write-Host "`n[Status]" -ForegroundColor Cyan
 
-    Write-Host "Checking CLI tool status..." -ForegroundColor Cyan
-
-    $process = Get-RunningProcessId
-    if ($process) {
-        Write-Host "CLI tool is currently RUNNING with PID $($process.Id)." -ForegroundColor Green
+    $proc = Get-TrackedProcess
+    if ($proc) {
+        $uptime = (Get-Date) - $proc.StartTime
+        $config  = Get-ResolvedModelConfig -ModelName $ActiveModel
+        Write-Host "  Status   : RUNNING" -ForegroundColor Green
+        Write-Host "  PID      : $($proc.Id)"
+        Write-Host "  Uptime   : $([math]::Round($uptime.TotalMinutes, 1)) min"
+        Write-Host "  Model    : $($config.Description)"
+        Write-Host "  Backend  : $Backend"
+        Write-Host "  Endpoint : http://127.0.0.1:$($CommonArgs['--port'])/v1"
     } else {
-        Write-Host "CLI tool is NOT running or its PID is not tracked." -ForegroundColor Red
+        Write-Host "  Status   : NOT RUNNING" -ForegroundColor Red
     }
 }
 
-function Stop-AndRemoveCliProcess {
-    <#
-    .SYNOPSIS
-    Stops the background CLI tool and cleans up the PID file.
-    #>
-    param()
+function Stop-Server {
+    Write-Host "`n[Stop]" -ForegroundColor Cyan
 
-    Write-Host "Attempting to stop CLI tool and clean up..." -ForegroundColor Cyan
-
-    $process = Get-RunningProcessId
-    if ($process) {
+    $proc = Get-TrackedProcess
+    if (-not $proc) {
+        Write-Host "  No tracked server process found." -ForegroundColor Yellow
+    } else {
         try {
-            Stop-Process -Id $process.Id -Force -ErrorAction Stop
-            Write-Host "CLI tool with PID $($process.Id) stopped successfully." -ForegroundColor Green
+            Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+            Write-Host "  PID $($proc.Id) stopped." -ForegroundColor Green
         } catch {
-            Write-Host "Failed to stop process with PID $($process.Id): $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  Could not stop PID $($proc.Id): $($_.Exception.Message)" -ForegroundColor Red
         }
+    }
+
+    if (Test-Path $PidFile) {
+        Remove-Item $PidFile -ErrorAction SilentlyContinue
+        Write-Host "  PID file removed." -ForegroundColor DarkGreen
+    }
+}
+
+function Restart-Server {
+    Write-Host "`n[Restart]" -ForegroundColor Cyan
+    Stop-Server
+    Start-Sleep -Seconds 1
+    Start-Server
+}
+
+function Show-Version {
+    Write-Host "`n[Version]" -ForegroundColor Cyan
+    if (-not (Test-Path $CliExe)) {
+        Write-Host "  llama-cli not found at: $CliExe" -ForegroundColor Red
+        return
+    }
+
+    $output = & $CliExe --version 2>&1
+
+    $versionMatch = $output | Select-String -Pattern 'version:\s*(\d+)'
+    if ($versionMatch) {
+        Write-Host "  llama.cpp build : $($versionMatch.Matches.Groups[1].Value)" -ForegroundColor Green
     } else {
-        Write-Host "No running CLI tool found or PID not tracked." -ForegroundColor Yellow
+        Write-Host "  llama.cpp build : (could not parse)" -ForegroundColor Yellow
     }
+    Write-Host "  Backend         : $Backend"
+    Write-Host "  Executable      : $CliExe"
 
-    if (Test-Path $pidFilePath) {
-        try {
-            Remove-Item $pidFilePath -ErrorAction Stop
-            Write-Host "PID file '$pidFilePath' removed successfully." -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to remove PID file '$pidFilePath': $($_.Exception.Message)" -ForegroundColor Red
-        }
-    } else {
-        Write-Host "PID file '$pidFilePath' does not exist." -ForegroundColor Yellow
-    }
-}
-
-function Print-LlamaVersion {
-	$output = & $cliToolPath --version 2>&1
-
-	$match = $output | Select-String -Pattern 'version: (\d+)'
-
-	if ($match) {
-		$versionNumber = $match.Matches.Groups[1].Value
-		Write-Host "Extracted version: $versionNumber" -ForegroundColor Green
-	} else {
-		Write-Host "No version number found in the text." -ForegroundColor Yellow
-		Write-Host "Full output was:"
-		Write-Host $output
-	}
-}
-
-function Show-CliOptions {
-    Write-Host "`n--- CLI Tool Manager ---" -ForegroundColor DarkCyan
-    Write-Host "1. Start process" -ForegroundColor White
-    Write-Host "2. Check process status" -ForegroundColor White
-    Write-Host "3. Stop and remove process (cleanup)" -ForegroundColor White
-	Write-Host "4. Print Version" -ForegroundColor White
-    Write-Host "Q. Quit" -ForegroundColor White
-    Write-Host "------------------------" -ForegroundColor DarkCyan
-
-    $choice = Read-Host "Enter your choice (1, 2, 3, 4, Q)"
-    $choice = $choice.ToUpper()
-
-    switch ($choice) {
-        "1" { Start-CliProcess }
-        "2" { Check-CliProcessStatus }
-        "3" { Stop-AndRemoveCliProcess }
-		"4" { Print-LlamaVersion }
-        "Q" {
-            Write-Host "Exiting CLI Tool Manager. Goodbye!" -ForegroundColor Green
-        }
-        default {
-            Write-Host "Invalid choice. Please try again." -ForegroundColor Red
+    # Print full output with colour coding:
+    #   Green    - CUDA/Vulkan device found summary line
+    #   DarkCyan - individual device detail lines, load_backend lines
+    #   DarkGray - everything else
+    Write-Host ""
+    Write-Host "  --- llama-cli --version output ---" -ForegroundColor DarkGray
+    foreach ($line in $output) {
+        $text = $line.ToString()
+        if ($text -match 'found \d+ CUDA device|found \d+ Vulkan device') {
+            Write-Host "  $text" -ForegroundColor Green
+        } elseif ($text -match 'Device \d+:' -or $text -match 'ggml_cuda_init|ggml_vulkan') {
+            Write-Host "  $text" -ForegroundColor DarkCyan
+        } elseif ($text -match 'load_backend') {
+            Write-Host "  $text" -ForegroundColor DarkCyan
+        } else {
+            Write-Host "  $text" -ForegroundColor DarkGray
         }
     }
 }
 
-Show-CliOptions
+function Show-Config {
+    Write-Host "`n[Config Preview]" -ForegroundColor Cyan
+    $config = Get-ResolvedModelConfig -ModelName $ActiveModel
+    if (-not $config) {
+        Write-Host "  Model '$ActiveModel' not in registry." -ForegroundColor Red
+        return
+    }
+    $args = Build-ServerArgArray -ModelName $ActiveModel
+    Write-Host "  Model    : $($config.Description)" -ForegroundColor DarkCyan
+    Write-Host "  Backend  : $Backend" -ForegroundColor DarkCyan
+    Write-Host "  File     : $($config.ModelPath)" -ForegroundColor DarkCyan
+    Write-Host ""
+    Write-Host "  Full command:" -ForegroundColor DarkGray
+    Write-Host "  $ServerExe \" -ForegroundColor White
+    for ($i = 0; $i -lt $args.Length; $i += 2) {
+        if ($i + 1 -lt $args.Length -and -not $args[$i+1].StartsWith('-')) {
+            Write-Host "    $($args[$i]) $($args[$i+1]) \" -ForegroundColor White
+        } else {
+            Write-Host "    $($args[$i]) \" -ForegroundColor White
+            $i--  # flag had no value, don't skip next
+        }
+    }
+}
+
+# =============================================================================
+# MAIN MENU LOOP
+# =============================================================================
+function Show-Menu {
+    $config = Get-ResolvedModelConfig -ModelName $ActiveModel
+    $modelLabel = if ($config) { $config.Description } else { "$ActiveModel (NOT FOUND)" }
+
+    Write-Host "`n╔══════════════════════════════════════╗" -ForegroundColor DarkCyan
+    Write-Host "║      llama-server Manager            ║" -ForegroundColor DarkCyan
+    Write-Host "╠══════════════════════════════════════╣" -ForegroundColor DarkCyan
+    Write-Host "║  Model  : $($modelLabel.PadRight(27))║" -ForegroundColor White
+    Write-Host "║  Backend: $($Backend.PadRight(27))║" -ForegroundColor White
+    Write-Host "╠══════════════════════════════════════╣" -ForegroundColor DarkCyan
+    Write-Host "║  1. Start server                     ║" -ForegroundColor White
+    Write-Host "║  2. Status                           ║" -ForegroundColor White
+    Write-Host "║  3. Stop server                      ║" -ForegroundColor White
+    Write-Host "║  4. Restart server                   ║" -ForegroundColor White
+    Write-Host "║  5. Preview config / command         ║" -ForegroundColor White
+    Write-Host "║  6. Print version                    ║" -ForegroundColor White
+    Write-Host "║  Q. Quit                             ║" -ForegroundColor White
+    Write-Host "╚══════════════════════════════════════╝" -ForegroundColor DarkCyan
+}
+
+Show-Menu
+$choice = (Read-Host "`n  Enter choice").Trim().ToUpper()
+
+switch ($choice) {
+    "1" { Start-Server }
+    "2" { Show-Status }
+    "3" { Stop-Server }
+    "4" { Restart-Server }
+    "5" { Show-Config }
+    "6" { Show-Version }
+    "Q" { Write-Host "`n  Goodbye." -ForegroundColor Green }
+    default { Write-Host "`n  Invalid choice '$choice'." -ForegroundColor Red }
+}
