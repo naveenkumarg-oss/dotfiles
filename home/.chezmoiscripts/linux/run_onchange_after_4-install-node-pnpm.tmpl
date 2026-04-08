@@ -1,3 +1,13 @@
+#!/bin/bash
+
+# {{ template "scripts-library" }}
+
+# The following line is for ShellCheck to correctly identify the above include
+true || source ../.chezmoitemplates/scripts-library
+
+log_task "Installing node per official recommendation method"
+
+
 # Using official recommended documentation: https://nodejs.org/en/download
 # brew is unofficial community recommendation
 
