@@ -1,3 +1,0 @@
-# shellcheck shell=bash
-
-ensure_path_entry "${HOME}/.volta/bin"
